@@ -1,0 +1,15 @@
+{
+  "name": "denia-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "娅娅（达妮娅）桌面版：透明置顶窗口 + three.js/MMD 渲染",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node tests/morph-filter.mjs && node --test tests/sparse-morph.test.mjs tests/whisper-idle.test.cjs && node tests/sparse-morph-real.mjs"
+  },
+  "devDependencies": {
+    "electron": "43.7.11"
+  }
+}

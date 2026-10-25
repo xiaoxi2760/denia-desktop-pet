@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>娅娅 · 桌面试作</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; user-select: none; }
+    #stage { width: 100vw; height: 100vh; display: block; -webkit-user-drag: none; }
+    #hud {
+      position: fixed; left: 12px; top: 12px; font: 12px/1.6 "Microsoft YaHei", sans-serif;
+      color: #fff; text-shadow: 0 1px 3px #000; white-space: pre-wrap; pointer-events: none;
+      display: none;
+    }
+    body.dev #hud { display: block; }
+    #bubble {
+      position: fixed; left: 50%; transform: translateX(-50%) translateY(6px) scale(0.96);
+      top: 8%; max-width: 78%; padding: 10px 14px; border-radius: 14px;
+      background: rgba(28, 20, 40, 0.82); color: #fff; font: 13px/1.7 "Microsoft YaHei", sans-serif;
+      border: 1px solid rgba(190, 160, 255, 0.55); box-shadow: 0 6px 24px rgba(60, 20, 110, 0.45);
+      opacity: 0; transition: opacity .18s ease, transform .18s ease; pointer-events: none;
+      backdrop-filter: blur(6px); white-space: pre-wrap; text-align: center;
+    }
+    #bubble.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    #composer {
+      position: fixed; left: 14px; right: 14px; bottom: 14px; display: none;
+      gap: 8px; align-items: center;
+    }
+    body.chat #composer { display: flex; }
+    #input {
+      flex: 1; min-width: 0; padding: 9px 12px; border-radius: 12px;
+      border: 1px solid rgba(190, 160, 255, 0.6); background: rgba(24, 18, 36, 0.9);
+      color: #fff; font: 13px/1.5 "Microsoft YaHei", sans-serif; outline: none;
+    }
+    #input::placeholder { color: rgba(255,255,255,0.45); }
+    #sendBtn {
+      padding: 9px 14px; border-radius: 12px; border: 1px solid rgba(190, 160, 255, 0.6);
+      background: rgba(120, 80, 200, 0.85); color: #fff; cursor: pointer;
+      font: 13px/1.5 "Microsoft YaHei", sans-serif;
+    }
+    #sendBtn:disabled { opacity: 0.5; cursor: default; }
+    /* 语音对讲（2026-10-11）：按住说话 */
+    #micBtn {
+      padding: 9px 12px; border-radius: 12px; border: 1px solid rgba(190, 160, 255, 0.6);
+      background: rgba(60, 40, 90, 0.85); color: #fff; cursor: pointer;
+      font: 15px/1.4 "Microsoft YaHei", sans-serif; user-select: none; touch-action: none;
+    }
+    #micBtn.listening {
+      background: rgba(210, 70, 90, 0.95); border-color: rgba(255, 180, 190, 0.9);
+      animation: micPulse 1s infinite;
+    }
+    @keyframes micPulse {
+      0% { box-shadow: 0 0 0 0 rgba(255, 120, 150, 0.55); }
+      100% { box-shadow: 0 0 0 10px rgba(255, 120, 150, 0); }
+    }
+    #micBtn.handsfree {
+      background: rgba(40, 150, 110, 0.95); border-color: rgba(160, 255, 210, 0.9);
+      animation: micPulse 1.6s infinite;
+    }
+    #micBtn.handsfree.wait { background: rgba(200, 150, 40, 0.95); border-color: rgba(255, 220, 150, 0.9); }
+    /* 快速调大小：鼠标挨着她时出现（2026-10-11 用户点单） */
+    #sizeCtl {
+      position: fixed; left: 40px; top: 40px; display: flex; flex-direction: column; gap: 6px;
+      opacity: 0; transition: opacity .15s ease; pointer-events: none; z-index: 60;
+    }
+    #sizeCtl.show { opacity: 0.94; pointer-events: auto; }
+    #sizeCtl button {
+      width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(190, 160, 255, 0.65);
+      background: rgba(30, 22, 46, 0.85); color: #fff; font: 16px/1 "Microsoft YaHei", sans-serif;
+      cursor: pointer; padding: 0;
+    }
+    #sizeCtl button:hover { background: rgba(90, 60, 150, 0.95); }
+  </style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <div id="hud">加载中…</div>
+  <div id="bubble"></div>
+  <div id="sizeCtl">
+    <button id="sizeUp" title="变大一点">＋</button>
+    <button id="sizeDown" title="变小一点">－</button>
+  </div>
+  <div id="composer">
+    <input id="input" type="text" placeholder="跟娅娅说点什么…（Enter 发送，Esc 收起）" />
+    <button id="micBtn" title="按住说话（松开就发给她）">🎤</button>
+    <button id="sendBtn">发送</button>
+  </div>
+  <script>
+    // 早期错误也要看得见：直接写进 HUD，方便无头截图/抓 DOM 时排查
+    (function () {
+      var hud = document.getElementById('hud');
+      function show(tag, msg) {
+        if (!hud) return;
+        hud.textContent = '[' + tag + '] ' + msg;
+        window.__status = hud.textContent;
+        window.__error = window.__error || (tag + ': ' + msg);
+      }
+      window.addEventListener('error', function (e) {
+        show('error', (e.message || e.error) + ' @ ' + (e.filename || '') + ':' + (e.lineno || 0));
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        show('rejection', e.reason && e.reason.message ? e.reason.message : String(e.reason));
+      });
+    })();
+  </script>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./lib/three.module.js",
+      "three/addons/": "./lib/examples/jsm/"
+    }
+  }
+  </script>
+  <!-- 物理引擎（Ammo/Bullet 的 wasm 版）：懒加载（2026-10-15 实测优化）。
+     默认物理 off，启动不拉 651KB wasm、不付 64MB 运行堆；开物理时按需加载（幂等）。 -->
+  <script>
+    window.__ammoReady = null;
+    window.__ensureAmmo = function () {
+      if (window.__ammoReady) return window.__ammoReady;   // 已加载/加载中：直接复用
+      window.__ammoReady = new Promise((resolve) => {
+        const go = () => {
+          if (typeof Ammo === 'function') {
+            Ammo().then((lib) => { window.Ammo = lib; resolve(true); })
+              .catch((e) => { window.__ammoError = String(e); resolve(false); });
+          } else resolve(false);
+        };
+        const s = document.createElement('script');
+        s.src = './lib/examples/jsm/libs/ammo.wasm.js';
+        s.onload = go;
+        s.onerror = () => { window.__ammoError = 'ammo.wasm.js 加载失败'; resolve(false); };
+        document.body.appendChild(s);
+      });
+      return window.__ammoReady;
+    };
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>

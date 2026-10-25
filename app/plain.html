@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <title>对照页：只加载模型</title>
+  <style>html,body{margin:0;height:100%;background:#2a2a33}canvas{display:block;width:100vw;height:100vh}</style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <script type="importmap">
+  { "imports": { "three": "./lib/three.module.js", "three/addons/": "./lib/examples/jsm/" } }
+  </script>
+  <script type="module">
+    // 对照用：只加载 PMX 并渲染，不写骨骼、不写表情、不跑物理
+    import * as THREE from 'three';
+    import { MMDLoader } from './lib/examples/jsm/loaders/MMDLoader.js';
+    const form = ['鸣潮_达妮娅（红色一形态-修模绑骨后', '鸣潮_达妮娅（红色毛茸袖形态）', '鸣潮_达妮娅1.4(red ver).pmx'];
+    const dir = '/model/' + encodeURIComponent(form[0]) + '/' + encodeURIComponent(form[1]) + '/';
+    const url = dir + encodeURIComponent(form[2]);
+    const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 0.1, 4000);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+    const d1 = new THREE.DirectionalLight(0xffffff, 1.2); d1.position.set(0.5, 1.2, 1.6); scene.add(d1);
+    new MMDLoader().load(url, (mesh) => {
+      scene.add(mesh);
+      mesh.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(mesh);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const view = new URLSearchParams(location.search).get('view') || 'full';
+      const want = view === 'full' ? size.y * 1.02 : size.y * 0.72;
+      const dist = want / (2 * Math.tan((camera.fov * Math.PI / 180) / 2));
+      const targetY = view === 'full' ? center.y : center.y + size.y * 0.26;
+      camera.position.set(center.x, targetY, center.z + dist);
+      camera.lookAt(center.x, targetY, center.z);
+      const tick = () => { renderer.render(scene, camera); requestAnimationFrame(tick); };
+      // 可选：模拟"手臂压低"对衣服的影响（?armz=0.55 等于模型原始姿态）
+      const armz = Number(new URLSearchParams(location.search).get('armz') ?? 0);
+      if (armz !== 0) {
+        const byName = {};
+        for (const b of mesh.skeleton.bones) byName[b.name] = b;
+        if (byName['左腕']) byName['左腕'].rotation.z += armz;
+        if (byName['右腕']) byName['右腕'].rotation.z -= armz;
+      }
+      // 可选：模拟主程序的"每帧把所有骨骼写回默认姿态"
+      const writeBase = new URLSearchParams(location.search).get('writebase') === '1';
+      let baseRot = null;
+      if (writeBase) {
+        baseRot = {};
+        for (const b of mesh.skeleton.bones) baseRot[b.name] = { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z };
+        const originalTick = tick;
+        const tick2 = () => {
+          for (const b of mesh.skeleton.bones) {
+            const r = baseRot[b.name];
+            if (r) b.rotation.set(r.x, r.y, r.z);
+          }
+          renderer.render(scene, camera);
+          requestAnimationFrame(tick2);
+        };
+        requestAnimationFrame(tick2);
+        window.__ready = true;
+        window.__check = 'writebase';
+        return;
+      }
+      tick();
+      window.__ready = true;
+    }, undefined, (e) => { window.__error = String(e?.message || e); });
+  </script>
+</body>
+</html>

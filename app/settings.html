@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>娅娅 · 独立 AI 设置</title>
+  <style>
+    body { font-family: 'Microsoft YaHei', sans-serif; background: #f6f4fb; color: #2b2b2b; margin: 0; padding: 20px; }
+    h1 { font-size: 17px; margin: 0 0 6px; }
+    .tip { color: #777; font-size: 12px; margin: 0 0 14px; }
+    label { display: block; font-size: 13px; margin: 12px 0 4px; }
+    input, textarea, select { width: 100%; box-sizing: border-box; padding: 7px 8px; font-size: 13px; border: 1px solid #d8d2e8; border-radius: 6px; background: #fff; }
+    textarea { min-height: 170px; resize: vertical; }
+    .row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .hint { color: #8a86a3; font-size: 11px; margin: 6px 0 0; line-height: 1.5; }
+    .vg { padding: 8px 10px 12px; border: 1px dashed #cfc8e6; border-radius: 8px; margin-top: 8px; background: #fbfaff; }
+    .vg[hidden] { display: none; }
+    .vg .hint { color: #8a86a3; font-size: 11px; margin-top: 6px; }
+    button { padding: 8px 14px; margin-right: 8px; border: 0; border-radius: 6px; background: #7a6ff0; color: #fff; font-size: 13px; cursor: pointer; }
+    button.ghost { background: #e6e2f4; color: #5a5480; }
+    #status { font-size: 12px; color: #4c4a66; margin-top: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>娅娅 · 独立 AI 设置</h1>
+  <p class="tip">没有「大脑」（bot）也能对话和语音：直接连一个兼容 OpenAI 的模型接口，鸣潮官方·达妮娅的人设卡会自动注入（不需要任何 QQ / 主机）。</p>
+
+  <label>模式</label>
+  <select id="enabled">
+    <option value="0">关闭独立模式（连大脑 / 桥接）</option>
+    <option value="1">开启独立模式（直连 AI，无 bot 可用）</option>
+  </select>
+
+  <label>API 地址（base URL）</label>
+  <input id="baseUrl" placeholder="https://discovery-api.intern-ai.org.cn/v1">
+
+  <label>API Key</label>
+  <input id="apiKey" type="password" placeholder="sk-...">
+
+  <label>模型</label>
+  <input id="model" placeholder="deepseek-v4-flash-0731">
+  <p class="hint">填法示例 —— DeepSeek：地址 https://api.deepseek.com/v1 ＋ 模型 deepseek-chat；MiniMax：地址 https://api.minimax.cn/v1 ＋ 模型 MiniMax-M3。地址只填到 <b>/v1</b> 结尾即可（后面的 /chat/completions 会自动接上，不要再带别的路径）。「看看屏幕 / 陪看」需要模型支持看图（视觉模型），每看一眼会消耗一点你 Key 的额度。</p>
+
+  <label>人设卡（留空 = 用内置的鸣潮·达妮娅官方卡）</label>
+  <textarea id="persona" placeholder="留空即可使用内置人设"></textarea>
+
+  <label>她的声音 · 引擎</label>
+  <select id="vEngine">
+    <option value="sapi">本机 Windows 语音（零配置，默认）</option>
+    <option value="sovits">GPT-SoVITS 本地服务（同款"娅娅音色"引擎）</option>
+    <option value="fish">Fish Audio（上传音频复刻音色 · 云端）</option>
+    <option value="openai">OpenAI 兼容语音接口（硅基流动等）</option>
+    <option value="volcano">火山引擎（豆包 / 声音复刻：AppID + Token + 声音ID）</option>
+    <option value="minimax">MiniMax 海螺（音色快速复刻 → Voice ID）</option>
+    <option value="volcano3">火山引擎·新版控制台（豆包语音大模型：只填 API Key + 音色ID）</option>
+  </select>
+
+  <div id="gSapi" class="vg">
+    <label>Windows 语音名（留空用系统默认）</label>
+    <input id="sapiVoice" placeholder="Microsoft Huihui Desktop">
+  </div>
+
+  <div id="gSovits" class="vg">
+    <label>服务地址（在你电脑上跑的 GPT-SoVITS api_v2）</label>
+    <input id="sovitsUrl" placeholder="http://127.0.0.1:9880">
+    <label>参考音频路径（本机文件，3~10 秒干净人声）</label>
+    <input id="sovitsRef" placeholder="D:\voices\ref.wav">
+    <label>参考音频里说的那句话 / 语言</label>
+    <input id="sovitsPrompt" placeholder="参考音频的文字内容">
+    <div class="row">
+      <input id="sovitsPromptLang" style="width: 64px" value="zh" title="参考音频语言：zh / ja / en">
+      <select id="sovitsLang" style="width: 110px">
+        <option value="auto">自动判定</option>
+        <option value="zh">中文</option>
+        <option value="ja">日语</option>
+        <option value="en">英语</option>
+      </select>
+      <input id="sovitsSpeed" type="number" step="0.1" min="0.3" max="3" style="width: 84px" value="1" title="语速">
+    </div>
+    <label>（可选）音色模型的权重路径——装了训练好的模型才填</label>
+    <input id="sovitsGptWeights" placeholder="GPT 权重 .ckpt（可留空）">
+    <input id="sovitsSovitsWeights" style="margin-top: 4px" placeholder="SoVITS 权重 .pth（可留空）">
+    <p class="hint">没有装过 GPT-SoVITS 就用上面第三种（Fish Audio），不用在自己电脑装任何东西。</p>
+  </div>
+
+  <div id="gFish" class="vg">
+    <label>接口地址</label>
+    <input id="fishUrl" placeholder="https://api.fish.audio">
+    <label>API Key（fish.audio → 账户 → API Keys）</label>
+    <input id="fishKey" type="password" placeholder="Fish Audio API Key">
+    <label>音色 ID（在 fish.audio 上传她的音频 / 复刻后可拿到）</label>
+    <div class="row">
+      <input id="fishRefId" placeholder="reference_id / 音色 ID">
+      <input id="fishModel" style="width: 110px" value="s1" title="模型头：s1 或 speech-1.5">
+    </div>
+  </div>
+
+  <div id="gOpenai" class="vg">
+    <label>接口地址（OpenAI 兼容，如硅基流动）</label>
+    <input id="oaiUrl" placeholder="https://api.siliconflow.cn/v1">
+    <label>API Key</label>
+    <input id="oaiKey" type="password" placeholder="API Key">
+    <label>模型 / 音色名</label>
+    <div class="row">
+      <input id="oaiModel" placeholder="FunAudioLLM/CosyVoice2-0.5B">
+      <input id="oaiVoice" style="width: 130px" placeholder="音色名">
+    </div>
+    <p class="hint">平台支持"上传音频克隆音色"的话，音色名就填克隆出来那个。</p>
+  </div>
+
+  <div id="gVolcano" class="vg">
+    <label>AppID（火山控制台 → 语音技术 → 应用管理）</label>
+    <input id="volcanoAppId" placeholder="数字 App ID">
+    <label>Access Token（同页面的访问令牌）</label>
+    <input id="volcanoToken" type="password" placeholder="Access Token">
+    <label>声音 ID（声音复刻里克隆出的那个音色，S_ 开头）</label>
+    <div class="row">
+      <input id="volcanoVoiceId" placeholder="S_xxxxxxxxx">
+      <input id="volcanoCluster" style="width: 140px" value="volcano_icl" title="复刻音色填 volcano_icl；官方预置音色填 volcano_tts">
+    </div>
+    <label>语速（0.2 ~ 3）</label>
+    <input id="volcanoSpeed" type="number" step="0.1" min="0.2" max="3" style="width: 84px" value="1">
+    <label>接口地址（默认不用改）</label>
+    <input id="volcanoUrl" placeholder="https://openspeech.bytedance.com/api/v1/tts">
+    <p class="hint">复制粘贴别手打：AppID/Token 在"语音技术 → 应用管理"；声音 ID 在"声音复刻 → 我的音色"。集群栏默认 volcano_icl 就是复刻音色用的。</p>
+  </div>
+
+  <div id="gMinimax" class="vg">
+    <label>API Key（MiniMax 开放平台 → 接口密钥）</label>
+    <input id="minimaxKey" type="password" placeholder="MiniMax API Key">
+    <label>音色 ID（Voice ID：系统音色，或你自己复刻出来的那个）</label>
+    <input id="minimaxVoiceId" placeholder="如 male-qn-qingse，或复刻得到的 voice_id">
+    <label>模型 / 语速</label>
+    <div class="row">
+      <input id="minimaxModel" style="width: 200px" value="speech-2.8-hd" placeholder="speech-2.8-hd">
+      <input id="minimaxSpeed" type="number" step="0.1" min="0.2" max="3" style="width: 84px" value="1">
+    </div>
+    <label>接口地址（默认不用改）</label>
+    <input id="minimaxUrl" placeholder="https://api.minimax.cn/v1/t2a_v2">
+    <p class="hint">音色快速复刻在 MiniMax 开放平台（需先完成个人认证）；复刻出的音色 7 天内要正式用一次，否则平台会回收。</p>
+  </div>
+
+  <div id="gVolcano3" class="vg">
+    <label>资源类型（决定用哪代模型；复刻音色选"复刻"系列）</label>
+    <select id="volcano3Resource">
+      <option value="seed-icl-2.0">声音复刻 2.0（推荐·新版复刻）</option>
+      <option value="seed-icl-1.0">声音复刻 1.0（旧版复刻的音色）</option>
+      <option value="seed-tts-2.0">官方音色 2.0（没用复刻的）</option>
+      <option value="seed-tts-1.0">官方音色 1.0</option>
+    </select>
+    <label>API Key（新版控制台：左侧「API Key」页里的那把）</label>
+    <input id="volcano3ApiKey" type="password" placeholder="API Key">
+    <label>音色 ID（speaker：克隆音色是 S_ 开头；官方音色是 zh_female_… 这种）</label>
+    <input id="volcano3Speaker" placeholder="S_xxxxxxxxx">
+    <label>语速（-50 ~ 100，0 = 正常）</label>
+    <input id="volcano3SpeechRate" type="number" step="10" min="-50" max="100" style="width: 90px" value="0">
+    <label>（可选 · 仅旧版控制台）AppID + Access Key —— 新版控制台留空即可</label>
+    <div class="row">
+      <input id="volcano3AppId" placeholder="AppID（可留空）">
+      <input id="volcano3AccessKey" type="password" placeholder="Access Key（可留空）">
+    </div>
+    <label>接口地址（默认不用改）</label>
+    <input id="volcano3Url" placeholder="https://openspeech.bytedance.com/api/v3/tts/unidirectional/sse">
+    <p class="hint">新版控制台在 console.volcengine.com/speech/new：「API Key」页创建密钥；克隆的音色在「声音复刻 → 我的音色」。AppID 是旧版接口才要的（它藏在新版 API Key 页右上角的小链接「APP ID ›」里）。</p>
+  </div>
+
+  <label>上下文轮数 / 单次回复上限（tokens）</label>
+  <div class="row">
+    <input id="historyLimit" type="number" style="width: 90px" value="40">
+    <input id="maxTokens" type="number" style="width: 110px" value="2048">
+  </div>
+
+  <div class="row">
+    <button id="save">保存</button>
+    <button id="testChat" class="ghost">测试对话</button>
+    <button id="testVoice" class="ghost">测试语音</button>
+  </div>
+  <div id="status"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const s = window.pet;
+    const VFIELDS = ['sapiVoice','sovitsUrl','sovitsRef','sovitsPrompt','sovitsPromptLang','sovitsLang','sovitsGptWeights','sovitsSovitsWeights','fishUrl','fishKey','fishRefId','fishModel','oaiUrl','oaiKey','oaiModel','oaiVoice','volcanoUrl','volcanoAppId','volcanoToken','volcanoCluster','volcanoVoiceId','minimaxUrl','minimaxKey','minimaxVoiceId','minimaxModel','volcano3Url','volcano3ApiKey','volcano3AppId','volcano3AccessKey','volcano3Resource','volcano3Speaker'];
+    function showEngine(eng) {
+      $('gSapi').hidden = eng !== 'sapi';
+      $('gSovits').hidden = eng !== 'sovits';
+      $('gFish').hidden = eng !== 'fish';
+      $('gOpenai').hidden = eng !== 'openai';
+      $('gVolcano').hidden = eng !== 'volcano';
+      $('gMinimax').hidden = eng !== 'minimax';
+      $('gVolcano3').hidden = eng !== 'volcano3';
+    }
+    $('vEngine').onchange = () => showEngine($('vEngine').value);
+    async function load() {
+      try {
+        const c = await s.standaloneGet();
+        $('enabled').value = c.enabled ? '1' : '0';
+        $('baseUrl').value = c.baseUrl || '';
+        $('apiKey').value = c.apiKey || '';
+        $('model').value = c.model || '';
+        $('persona').value = c.persona || '';
+        $('historyLimit').value = c.historyLimit || 40;
+        $('maxTokens').value = c.maxTokens || 2048;
+        const v = c.voice || {};
+        $('vEngine').value = v.engine || 'sapi';
+        for (const f of VFIELDS) if (v[f] !== undefined && v[f] !== null) $(f).value = v[f];
+        if (v.sovitsSpeed) $('sovitsSpeed').value = v.sovitsSpeed;
+        if (v.volcanoSpeed) $('volcanoSpeed').value = v.volcanoSpeed;
+        if (v.minimaxSpeed) $('minimaxSpeed').value = v.minimaxSpeed;
+        if (v.volcano3SpeechRate !== undefined && v.volcano3SpeechRate !== null) $('volcano3SpeechRate').value = v.volcano3SpeechRate;
+        showEngine($('vEngine').value);
+      } catch (e) {
+        $('status').textContent = '读取设置失败：' + e;
+      }
+    }
+    async function save() {
+      const voice = { engine: $('vEngine').value, sovitsSpeed: Number($('sovitsSpeed').value) || 1, volcanoSpeed: Number($('volcanoSpeed').value) || 1, minimaxSpeed: Number($('minimaxSpeed').value) || 1, volcano3SpeechRate: Number($('volcano3SpeechRate').value) || 0 };
+      for (const f of VFIELDS) voice[f] = $(f).value;
+      return await s.standaloneSave({
+        enabled: $('enabled').value === '1',
+        baseUrl: $('baseUrl').value,
+        apiKey: $('apiKey').value,
+        model: $('model').value,
+        persona: $('persona').value,
+        ttsVoice: $('sapiVoice').value,
+        voice,
+        historyLimit: Number($('historyLimit').value),
+        maxTokens: Number($('maxTokens').value),
+      });
+    }
+    $('save').onclick = async () => {
+      const r = await save();
+      $('status').textContent = r.ok ? '已保存 ✓（立即生效）' : '保存失败：' + (r.error || '');
+    };
+    $('testChat').onclick = async () => {
+      await save();
+      $('status').textContent = '正在测试对话…';
+      const r = await s.say('只回复两个字：可用');
+      $('status').textContent = r.ok ? ('她说：' + (r.reply || '')) : ('失败：' + (r.error || ''));
+    };
+    $('testVoice').onclick = async () => {
+      await save();
+      $('status').textContent = '正在合成语音…';
+      const r = await s.voice('你好呀，我是娅娅。');
+      $('status').textContent = r.ok ? ('语音已播放 ✓（' + (r.engine || '本地') + '）') : ('失败：' + (r.error || ''));
+    };
+    load();
+  </script>
+</body>
+</html>

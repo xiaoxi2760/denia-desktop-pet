@@ -1,0 +1,36 @@
+{
+  "_说明": "复制成 config.local.json 再改。两种模式二选一，见 README。",
+
+  "_模式A_联机_你有自己的后端": {
+    "consoleToken": "改成你自己后端校验的密钥（会作为 x-console-token 请求头发出）",
+    "tunnelLocalPort": 13100,
+    "bridgePort": 3100,
+    "ownerQQ": "随便填一个用户名，会被当作会话 key 拼成 private:<这里>",
+    "sshHost": "如果后端在远程机器上，填 ~/.ssh/config 里的 Host 别名；同机或内网直连就留空",
+    "_提示": "桌宠会自动拉 ssh -N -L <tunnelLocalPort>:127.0.0.1:<bridgePort> <sshHost>"
+  },
+
+  "_模式B_独立_直连模型_不需要服务器": {
+    "standalone": {
+      "enabled": true,
+      "backend": "openai",
+      "baseUrl": "https://api.example.com/v1",
+      "apiKey": "sk-改成你的",
+      "model": "改成模型名",
+      "persona": "留空则用内置的 assets/standalone-persona.md",
+      "historyLimit": 40,
+      "maxTokens": 2048,
+      "voice": {
+        "engine": "sapi",
+        "sapiVoice": "Microsoft Huihui Desktop"
+      }
+    },
+    "_提示": "这一段也可以直接在应用内的「设置」页里填，不用改文件"
+  },
+
+  "_语音输入_可选_没有也能用": {
+    "whisperExe": "改成你本机 whisper-cli.exe 的完整路径；没有就留空",
+    "whisperModel": "改成 ggml 模型完整路径；没有就留空",
+    "whisperPort": 8181
+  }
+}
