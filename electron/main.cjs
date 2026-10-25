@@ -25,12 +25,34 @@ function loadLocalConfig() {
   }
 }
 const localCfg = loadLocalConfig();
-const TUNNEL_PORT = Number(localCfg.tunnelLocalPort) || 13100;
-const BRIDGE_PORT = Number(localCfg.bridgePort) || 3100;
-const SSH_HOST = String(localCfg.sshHost || 'pc');
-const OWNER_QQ = String(localCfg.ownerQQ || '');
-const CHAT_KEY = `private:${OWNER_QQ}`;
-const BASE = `http://127.0.0.1:${TUNNEL_PORT}`;
+// 大脑（对话后端）预设（2026-10-25）：可选 standalone（独立模式）或三套 bot 桥接。
+// 旧配置没有 backend 字段时推断：独立模式开着 → standalone；有 consoleToken → dsh。
+function inferBackend() {
+  if (localCfg.backend && BACKEND_KEYS.includes(localCfg.backend)) return localCfg.backend;
+  if (localCfg.standalone?.enabled) return 'standalone';
+  if (localCfg.consoleToken) return 'dsh';
+  return 'standalone';
+}
+const BACKEND_KEYS = ['standalone', 'dsh', 'astrbot', 'maibot'];
+const BACKEND_LABELS = {
+  standalone: '独立模式（直连 AI）',
+  dsh: 'DSH bot（自研后端）',
+  astrbot: 'AstrBot',
+  maibot: 'MaiBot（麦麦）',
+};
+let currentBackend = null;
+// 桥接相关量改成可刷新（backend 切换/改配置不再要求重启）
+let TUNNEL_PORT = 0, BRIDGE_PORT = 0, SSH_HOST = '', OWNER_QQ = '', CHAT_KEY = '', BASE = '';
+function applyLocalCfgVars() {
+  currentBackend = inferBackend();
+  TUNNEL_PORT = Number(localCfg.tunnelLocalPort) || 13100;
+  BRIDGE_PORT = Number(localCfg.bridgePort) || 3100;
+  SSH_HOST = String(localCfg.sshHost || 'pc');
+  OWNER_QQ = String(localCfg.ownerQQ || '');
+  CHAT_KEY = `private:${OWNER_QQ}`;
+  BASE = `http://127.0.0.1:${TUNNEL_PORT}`;
+}
+applyLocalCfgVars();
 let tunnelProc = null;
 let tunnelReady = false;
 
@@ -320,16 +342,23 @@ async function pingBridge(timeoutMs = 1200) {
   }
 }
 
+// 隧道/桥接状态变化 → 托盘"大脑"一行的 ·已连上/未连上 跟着变
+function setTunnelReady(v) {
+  if (tunnelReady === v) return;
+  tunnelReady = v;
+  try { refreshTrayMenu(); } catch { /* 托盘还没建就算了 */ }
+}
+
 async function ensureTunnel() {
   if (await pingBridge()) {
-    tunnelReady = true;
+    setTunnelReady(true);
     return true;
   }
   if (!localCfg.consoleToken) return false;
   if (tunnelProc && !tunnelProc.killed) {
     // 进程还在但没通，等它一下
     await new Promise((r) => setTimeout(r, 1500));
-    tunnelReady = await pingBridge();
+    setTunnelReady(await pingBridge());
     return tunnelReady;
   }
   tunnelProc = spawn('ssh', [
@@ -340,10 +369,10 @@ async function ensureTunnel() {
     '-L', `${TUNNEL_PORT}:127.0.0.1:${BRIDGE_PORT}`,
     SSH_HOST,
   ], { windowsHide: true, stdio: 'ignore' });
-  tunnelProc.on('exit', () => { tunnelProc = null; tunnelReady = false; });
+  tunnelProc.on('exit', () => { tunnelProc = null; setTunnelReady(false); });
   for (let i = 0; i < 12; i++) {
     await new Promise((r) => setTimeout(r, 400));
-    if (await pingBridge()) { tunnelReady = true; return true; }
+    if (await pingBridge()) { setTunnelReady(true); return true; }
   }
   return false;
 }
@@ -582,6 +611,53 @@ ipcMain.on('pet:relaunch', () => {
   app.quit();
 });
 
+// ── 大脑（对话后端）预设（2026-10-25）：启动器/右键可直接查看与切换 ──────────
+// 三套 bot 预设对桌宠来说协议相同（5 接口桥接），区别只是后端是谁、装法是什么；
+// 独立模式则完全不走桥接。此处只管"选择 + 桥接参数 + 状态"，bot 侧装法见 docs/接入预设-*.md。
+ipcMain.handle('pet:backend-state', async () => ({
+  backend: currentBackend,
+  backends: BACKEND_KEYS.map((k) => ({ key: k, label: BACKEND_LABELS[k] })),
+  bridge: {
+    consoleToken: String(localCfg.consoleToken || ''),
+    ownerQQ: String(localCfg.ownerQQ || ''),
+    bridgePort: Number(localCfg.bridgePort) || 3100,
+    sshHost: String(localCfg.sshHost || ''),
+  },
+  standaloneEnabled: !!STANDALONE.enabled,
+  bridgeOk: await pingBridge(1200),
+}));
+
+ipcMain.on('pet:backend-save', (_e, raw) => {
+  try {
+    const backend = BACKEND_KEYS.includes(raw?.backend) ? raw.backend : 'standalone';
+    localCfg.backend = backend;
+    if (raw?.consoleToken !== undefined) localCfg.consoleToken = String(raw.consoleToken || '').trim();
+    if (raw?.ownerQQ !== undefined) localCfg.ownerQQ = String(raw.ownerQQ || '').trim();
+    if (raw?.bridgePort !== undefined && Number(raw.bridgePort) > 0) localCfg.bridgePort = Number(raw.bridgePort) || 3100;
+    if (raw?.sshHost !== undefined) localCfg.sshHost = String(raw.sshHost || '').trim();
+    // 独立模式开关与 backend 保持同向（pet:say 等按 STANDALONE.enabled 分流）
+    localCfg.standalone = (localCfg.standalone && typeof localCfg.standalone === 'object') ? localCfg.standalone : {};
+    localCfg.standalone.enabled = backend === 'standalone';
+    STANDALONE.enabled = localCfg.standalone.enabled;
+    fs.writeFileSync(path.join(ROOT, 'config.local.json'), JSON.stringify(localCfg, null, 2) + '\n');
+    applyLocalCfgVars();
+    // 换了地址/密钥后旧隧道作废，逼出一次重连
+    try { if (tunnelProc && !tunnelProc.killed) tunnelProc.kill(); } catch { /* 忽略 */ }
+    tunnelProc = null;
+    tunnelReady = false;
+    refreshTrayMenu();
+  } catch { /* 配置写不进就算了，本次会话沿用旧值 */ }
+});
+
+ipcMain.on('pet:open-settings', () => openSettingsWindow());
+
+// 托盘/右键菜单里的"大脑"一行：当前预设 + 连接状态；点了打开启动器去改
+function backendStatusLabel() {
+  if (currentBackend === 'standalone') return '🧠 大脑：独立模式（直连 AI）';
+  const name = BACKEND_LABELS[currentBackend] || currentBackend;
+  return `🧠 大脑：${name}${tunnelReady ? ' · 已连上' : ' · 未连上'}`;
+}
+
 function createWindow(opts = {}) {
   const { workArea } = screen.getPrimaryDisplay();
   // 窗口尺寸：原来 420×780 太窄 —— 横向可视范围只有 7.5 个单位，而她张开手臂（含大袖子）
@@ -687,6 +763,7 @@ function refreshTrayMenu() {
     },
     { label: '锁定位置（防误拖）', type: 'checkbox', checked: posLocked, click: () => { if (win) win.webContents.send('pet:command', 'lock:toggle'); } },
     { type: 'separator' },
+    { label: backendStatusLabel(), click: () => showLauncher() },
     { label: '🚀 启动选项…', click: () => showLauncher() },
     { label: '⚙️ 独立 AI 设置…', click: () => openSettingsWindow() },
     { type: 'separator' },
@@ -968,6 +1045,7 @@ ipcMain.on('pet:context-menu', () => {
     { label: '让她歇会儿', click: () => win.webContents.send('pet:command', 'rest') },
     { label: '打个招呼', click: () => win.webContents.send('pet:command', 'wave') },
     { type: 'separator' },
+    { label: backendStatusLabel(), click: () => showLauncher() },
     { label: '🚀 启动选项…', click: () => showLauncher() },
     { label: '⚙️ 独立 AI 设置…', click: () => openSettingsWindow() },
     { label: '藏起来（Ctrl+Alt+Y）', click: toggleVisible },

@@ -43,6 +43,24 @@
   <h2>衣服头发飘动（物理）</h2>
   <div class="opts" id="phys"></div>
 
+  <h2>大脑（跟谁说话）</h2>
+  <div class="opts two" id="backends"></div>
+  <div id="bridgeBox" class="vg" style="margin-top: 6px">
+    <div class="row">
+      <input id="consoleToken" placeholder="密钥 consoleToken（与后端一致）" style="flex:1">
+      <input id="ownerQQ" placeholder="主人标识（如 QQ 号）" style="flex:1">
+    </div>
+    <div class="row">
+      <input id="bridgePort" type="number" placeholder="端口" style="width: 90px">
+      <input id="sshHost" placeholder="SSH 主机（后端同机可留空）" style="flex:1">
+    </div>
+    <p class="hint" id="backendHint"></p>
+    <p class="hint" id="bridgeStatus" style="color: #4c4a66"></p>
+  </div>
+  <div class="row" id="standaloneBox" hidden>
+    <button id="openSettings" class="ghost" style="flex:1">⚙️ 打开独立 AI 设置（配 API Key / 模型 / 语音）</button>
+  </div>
+
   <label class="skip"><input type="checkbox" id="skip"> 下次不再显示，直接按这些选择启动</label>
 
   <div class="btns">
@@ -55,6 +73,13 @@
   <script>
     const SIZE_LABELS = { mini: '迷你（440×580，角落里小小一只）', standard: '标准（660×860，默认）', large: '大（880×1150，看得更清楚）' };
     const FORM_DOTS = { red: '#e86a6a', blue: '#6a8fe8', solar5: '#e8b46a', white: '#aab2d1' };
+    // 大脑预设说明：三套 bot 对桌宠走同一套桥接协议，区别是后端是谁/怎么装（docs/接入预设-*.md）
+    const BACKEND_HINTS = {
+      standalone: '不经过任何后端：她直接连一个 OpenAI 兼容接口说话（API Key 在「独立 AI 设置」里配）。',
+      dsh: '你的自研后端（功能上限最高：主动搭话/远端语音/屏幕许可）。后端需实现 5 个接口，装法见 docs/接入预设-DSH-bot.md。',
+      astrbot: '现成 bot 框架 AstrBot。需要在 bot 机器装本仓库 presets/astrbot 插件，装法见 docs/接入预设-AstrBot.md。',
+      maibot: '麦麦（人格/记忆系统）。需要在 bot 机器跑本仓库 presets/maibot 适配层，装法见 docs/接入预设-MaiBot.md。',
+    };
     let state = null;
 
     function radioGroup(el, name, items, current, withDesc) {
@@ -106,12 +131,63 @@
         document.getElementById('restart').hidden = false;
         document.getElementById('note').textContent = '桌宠正在运行：点「应用」立即换形态/大小/画质（换模型会整页重载，对话重新开始）；「重启」会关掉整个程序再自动起来；这个窗口启动后会缩到后台，托盘、右键她本人、或再双击一次启动程序都能唤出来。';
       }
+
+      // ── 大脑（对话后端）预设 ──
+      try {
+        const b = await window.pet.backendState();
+        const el = document.getElementById('backends');
+        el.innerHTML = '';
+        for (const be of b.backends) {
+          const lab = document.createElement('label');
+          lab.className = 'opt';
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = 'backend';
+          input.value = be.key;
+          input.checked = be.key === b.backend;
+          const t = document.createElement('span');
+          t.className = 't';
+          t.textContent = be.label;
+          lab.append(input, t);
+          el.append(lab);
+        }
+        document.getElementById('consoleToken').value = b.bridge.consoleToken || '';
+        document.getElementById('ownerQQ').value = b.bridge.ownerQQ || '';
+        document.getElementById('bridgePort').value = b.bridge.bridgePort || 3100;
+        document.getElementById('sshHost').value = b.bridge.sshHost || '';
+        const applyBackendUi = () => {
+          const key = document.querySelector('input[name="backend"]:checked')?.value || 'standalone';
+          const isStandalone = key === 'standalone';
+          document.getElementById('bridgeBox').hidden = isStandalone;
+          document.getElementById('standaloneBox').hidden = !isStandalone;
+          document.getElementById('backendHint').textContent = BACKEND_HINTS[key] || '';
+          if (!isStandalone) {
+            document.getElementById('bridgeStatus').textContent = b.bridgeOk
+              ? '● 已连上这个后端 ✓（可以直接说话了）'
+              : '● 现在连不上——后端还没跑起来，或密钥/端口不一致（选好预设点启动后再试）';
+          }
+        };
+        document.getElementById('backends').addEventListener('change', applyBackendUi);
+        applyBackendUi();
+        document.getElementById('openSettings').addEventListener('click', () => window.pet?.openSettings?.());
+      } catch (e) {
+        document.getElementById('backendHint').textContent = '大脑状态读取失败：' + (e?.message || e);
+      }
     }
     init();
 
     document.getElementById('launch').addEventListener('click', () => {
       if (!window.pet?.launcherLaunch) return;
       const dpr = pick('dpr');
+      // 先保存大脑预设（独立/桥接 + 桥接参数），再按启动器选择启动
+      const backend = document.querySelector('input[name="backend"]:checked')?.value || 'standalone';
+      window.pet.backendSave?.({
+        backend,
+        consoleToken: document.getElementById('consoleToken').value,
+        ownerQQ: document.getElementById('ownerQQ').value,
+        bridgePort: Number(document.getElementById('bridgePort').value) || 3100,
+        sshHost: document.getElementById('sshHost').value,
+      });
       window.pet.launcherLaunch({
         form: pick('form') || 'red',
         size: pick('size') || 'standard',

@@ -29,6 +29,9 @@ contextBridge.exposeInMainWorld('pet', {
   standaloneSave: (cfg) => ipcRenderer.invoke('pet:standalone-save', cfg),
   launcherState: () => ipcRenderer.invoke('pet:launcher-state'),
   launcherLaunch: (opts) => ipcRenderer.send('pet:launcher-launch', opts),
+  backendState: () => ipcRenderer.invoke('pet:backend-state'),
+  backendSave: (opts) => ipcRenderer.send('pet:backend-save', opts),
+  openSettings: () => ipcRenderer.send('pet:open-settings'),
   onCommand: (fn) => ipcRenderer.on('pet:command', (_e, cmd) => fn(cmd)),
   onFeed: (fn) => ipcRenderer.on('pet:feed', (_e, payload) => fn(payload)),
 });
