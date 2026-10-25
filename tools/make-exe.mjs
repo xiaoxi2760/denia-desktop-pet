@@ -55,7 +55,7 @@ if (!fs.existsSync(path.join(DIST, 'electron.exe'))) {
 copyDir(DIST, OUT);
 
 console.log('[3/6] 复制应用源码 …');
-for (const name of ['electron', 'app', 'assets', 'tools', 'motions', 'docs']) {
+for (const name of ['electron', 'app', 'assets', 'tools', 'motions', 'docs', 'presets']) {
   copyDir(path.join(SRC, name), path.join(APP, name));
 }
 for (const name of ['package.json', 'package-lock.json', 'config.example.json', 'README.md', 'CHANGELOG.md']) {

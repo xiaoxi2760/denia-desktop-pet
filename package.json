@@ -1,6 +1,6 @@
 {
   "name": "denia-desktop",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "娅娅（达妮娅）桌面版：透明置顶窗口 + three.js/MMD 渲染",
   "main": "electron/main.cjs",
