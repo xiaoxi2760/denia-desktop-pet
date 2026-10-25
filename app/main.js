@@ -1888,6 +1888,11 @@ let hitTimer = 0;
 function tick() {
   const dt = Math.min(0.05, clock.getDelta());
   const t = clock.elapsedTime;
+  // 跨屏拖动时 devicePixelRatio 会变（如 1x 外接屏 ↔ 1.5x/2x 笔记本屏）。
+  // 只在启动时设一次的话，拖过去后备缓冲还是旧 DPR，整只角色发虚。
+  // 每帧一次数值比较可忽略；真变化时 setPixelRatio 才重建缓冲。上限 2 沿用既定决策。
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  if (dpr !== renderer.getPixelRatio()) renderer.setPixelRatio(dpr);
   if (mesh) {
     applyIdle(dt, t);
     sparseMorphController?.update();
@@ -1895,7 +1900,9 @@ function tick() {
     tickDrowsy();               // 困的自动进出：没动静就犯困、人回来就惊醒
     updateChair(dt);            // 椅子：坐着时淡入，坐垫自动落到她屁股底下
     hitTimer += dt;
-    if (hitTimer > 0.12) { hitTimer = 0; reportHitRect(); }
+    // 2026-10-25：0.12s → 0.25s。命中矩形只在"她在窗口内移动"时变化（走路/换姿势），
+    // 0.25s 的陈旧度对悬停判定无感；渲染层→主进程的常驻 IPC 频次减半。
+    if (hitTimer > 0.25) { hitTimer = 0; reportHitRect(); }
     updateInteractive();
     positionSizeCtl();          // 大小按钮跟着她挪（2026-10-11）
     syncSitTall();              // 坐姿加高/还原窗口（2026-10-11）
@@ -1926,6 +1933,23 @@ mmdLoader.load(
   (loaded) => {
     mesh = loaded;
     scene.add(mesh);
+    // ── 清晰度（2026-10-25）：贴图各向异性过滤 ──────────────────────
+    // MMDLoader 产出的贴图默认 anisotropy=1：正对相机没问题，但袖口/裙摆/头发
+    // 这类斜视角表面，1024 贴图被压进几百像素高的窗口里会明显发糊。
+    // 在首帧渲染前设置（此时贴图尚未上传 GPU），首次上传即生效，无重传成本。
+    // 代价可忽略（现代 GPU 各向异性采样是硬件能力），不增加显存。
+    // gradientMap（toon 渐变查找表）不动：NearestFilter 是它的语义要求。
+    {
+      const maxAniso = renderer.capabilities.getMaxAnisotropy();
+      for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        if (!material) continue;
+        for (const key of ['map', 'matcap']) {
+          const t = material[key];
+          if (t && t.isTexture) t.anisotropy = maxAniso;
+        }
+      }
+      window.__maxAnisotropy = maxAniso;   // 调试/验收用
+    }
     morphs = { dict: mesh.morphTargetDictionary || {}, inf: mesh.morphTargetInfluences || [] };
     if (params.get('morph') !== 'dense') sparseMorphController = createSparseMorphController(mesh);
     window.__sparseMorphStats = sparseMorphController?.stats || { mode: 'dense' };

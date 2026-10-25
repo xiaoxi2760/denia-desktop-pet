@@ -930,7 +930,10 @@ function readForeground() {
 ipcMain.handle('pet:env', async () => {
   const d = screen.getPrimaryDisplay();
   const mouse = screen.getCursorScreenPoint();
-  if (!fgCache.value || Date.now() - fgCache.at > 3000) {
+  // 2026-10-25：前台窗口缓存 3s → 15s。渲染层每 9s 来问一次 pet:env，原 3s TTL
+  // 等于每次都过期 → 每 9 秒新起一个 foreground.exe 子进程。"她在看什么"这种
+  // 环境感知 15 秒的陈旧度毫无影响；拿不到值（null）时仍然立即重试，不受影响。
+  if (!fgCache.value || Date.now() - fgCache.at > 15000) {
     fgCache = { at: Date.now(), value: await readForeground() };
   }
   return {
@@ -1549,12 +1552,16 @@ async function transcribeWav(buf) {
 }
 ipcMain.handle('pet:asr', (_e, wavBytes) => petAsr(wavBytes));
 
+// ── 命中测试 + 拖拽跟随轮询 ─────────────────────────────────────────
+// 2026-10-25：16ms → 32ms。这个常驻定时器是主进程最大的周期性唤醒源（原先 62Hz 永不
+// 停）；32ms（约 31Hz）对光标命中判定和窗口拖拽跟手度都无感，主进程唤醒数直接减半。
+// 再往上调（如 50ms+）拖拽会开始看出滞后，别贪。
 setInterval(() => {
   if (dragging && win) {
     const c = screen.getCursorScreenPoint();
     // ⚠️ 夹住范围：拖拽时至少留 1/3 窗口在屏幕里。
     //    没有这层保护时，如果渲染层漏了 mouseup（鼠标在窗口外松开），
-    //    这里会拿着旧偏移每 16ms 钉住窗口 —— 实测把她钉到 y=−784（屏幕外），
+    //    这里会拿着旧偏移每 32ms 钉住窗口 —— 实测把她钉到 y=−784（屏幕外），
     //    表现就是"坐/趴/蹲看着沉下去了"。
     const b = win.getBounds();
     const wa = screen.getPrimaryDisplay().workArea;
@@ -1572,13 +1579,18 @@ setInterval(() => {
   } else {
     applyHitTest();
   }
-}, 16);
+}, 32);
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => { if (win) { win.showInactive(); } });
-  app.on('will-quit', () => { try { whisperIdle.dispose(); } catch { /* 忽略 */ } });
+  app.on('will-quit', () => {
+    try { whisperIdle.dispose(); } catch { /* 忽略 */ }
+    // 2026-10-25：退出时杀掉自己拉的 SSH 隧道。原先只清 whisper，
+    // `ssh -N -L` 隧道没有会话使命也不会自己退，会留孤儿进程占着端口转发。
+    try { if (tunnelProc && !tunnelProc.killed) tunnelProc.kill(); } catch { /* 忽略 */ }
+  });
   // 上一版遗留的僵尸 foreground.exe（老版本没超时保护，卡住就不再退出）：启动时清一遍。
   // 它是"看你在忙什么"用的小工具，只在需要时按需启动，清掉不会有副作用。
   try { spawn('taskkill', ['/F', '/IM', 'foreground.exe'], { windowsHide: true }); } catch { /* 忽略 */ }
