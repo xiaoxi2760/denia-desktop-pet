@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>娅娅 · 启动器</title>
+  <style>
+    body { font-family: 'Microsoft YaHei', sans-serif; background: #f6f4fb; color: #2b2b2b; margin: 0; padding: 18px 20px; user-select: none; }
+    h1 { font-size: 17px; margin: 0 0 2px; }
+    .tip { color: #777; font-size: 12px; margin: 0 0 12px; }
+    h2 { font-size: 13px; margin: 14px 0 6px; color: #5a5480; }
+    .opts { display: grid; gap: 6px; }
+    .opts.two { grid-template-columns: 1fr 1fr; }
+    .opt { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border: 1px solid #d8d2e8; border-radius: 8px; background: #fff; cursor: pointer; }
+    .opt:hover { border-color: #7a6ff0; }
+    .opt input { margin-top: 2px; accent-color: #7a6ff0; }
+    .opt .t { font-size: 13px; line-height: 1.35; }
+    .opt .d { display: block; color: #8a86a3; font-size: 11px; margin-top: 1px; }
+    .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+    label.skip { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #4c4a66; margin: 14px 0 0; cursor: pointer; }
+    label.skip input { accent-color: #7a6ff0; }
+    .btns { display: flex; gap: 10px; margin-top: 16px; }
+    button { flex: 1; padding: 10px 14px; border: 0; border-radius: 8px; background: #7a6ff0; color: #fff; font-size: 14px; cursor: pointer; }
+    button:hover { background: #6a5fe6; }
+    button.ghost { background: #e6e2f4; color: #5a5480; flex: 0 0 96px; }
+    button.ghost:hover { background: #dcd6f0; }
+    #note { font-size: 11.5px; color: #8a86a3; margin: 10px 0 0; line-height: 1.5; min-height: 16px; }
+  </style>
+</head>
+<body>
+  <h1>娅娅 · 启动器</h1>
+  <p class="tip">选好再叫她出来。这些选择随时能在托盘「启动选项…」里改。</p>
+
+  <h2>模型</h2>
+  <div class="opts two" id="forms"></div>
+
+  <h2>窗口大小</h2>
+  <div class="opts" id="sizes"></div>
+
+  <h2>画质（渲染精细度）</h2>
+  <div class="opts" id="dprs"></div>
+
+  <h2>衣服头发飘动（物理）</h2>
+  <div class="opts" id="phys"></div>
+
+  <label class="skip"><input type="checkbox" id="skip"> 下次不再显示，直接按这些选择启动</label>
+
+  <div class="btns">
+    <button class="ghost" id="quit">退出</button>
+    <button id="launch">🚀 启动</button>
+  </div>
+  <p id="note"></p>
+
+  <script>
+    const SIZE_LABELS = { mini: '迷你（440×580，角落里小小一只）', standard: '标准（660×860，默认）', large: '大（880×1150，看得更清楚）' };
+    const FORM_DOTS = { red: '#e86a6a', blue: '#6a8fe8', solar5: '#e8b46a', white: '#aab2d1' };
+    let state = null;
+
+    function radioGroup(el, name, items, current, withDesc) {
+      el.innerHTML = '';
+      for (const it of items) {
+        const lab = document.createElement('label');
+        lab.className = 'opt';
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = name;
+        input.value = it.key;
+        input.checked = String(it.key) === String(current);
+        const t = document.createElement('span');
+        t.className = 't';
+        t.innerHTML = (it.dot ? `<span class="dot" style="background:${it.dot}"></span>` : '')
+          + it.label + (withDesc && it.desc ? `<span class="d">${it.desc}</span>` : '');
+        lab.append(input, t);
+        el.append(lab);
+      }
+    }
+
+    const pick = (name) => {
+      const el = document.querySelector(`input[name="${name}"]:checked`);
+      return el ? el.value : null;
+    };
+
+    async function init() {
+      if (!window.pet?.launcherState) { document.getElementById('note').textContent = '（不在桌宠环境里，无法获取选项）'; return; }
+      try { state = await window.pet.launcherState(); } catch (e) {
+        document.getElementById('note').textContent = '选项读取失败：' + (e?.message || e);
+        return;
+      }
+      const cfg = state.cfg || {};
+      radioGroup(document.getElementById('forms'), 'form',
+        state.forms.map((f) => ({ key: f.key, label: f.label, desc: f.desc, dot: FORM_DOTS[f.key] || '#999' })),
+        cfg.form || 'red', true);
+      radioGroup(document.getElementById('sizes'), 'size',
+        state.sizes.map((s) => ({ key: s, label: SIZE_LABELS[s] || s })),
+        cfg.size || 'standard', false);
+      radioGroup(document.getElementById('dprs'), 'dpr',
+        state.dprs.map((d) => ({ key: d.value, label: d.label, desc: d.desc })),
+        cfg.dpr ?? 2, true);
+      radioGroup(document.getElementById('phys'), 'phys',
+        state.phys.map((p) => ({ key: p.key, label: p.label, desc: p.desc })),
+        cfg.phys || 'off', true);
+      document.getElementById('skip').checked = !!cfg.skip;
+      if (state.running) {
+        document.getElementById('launch').textContent = '应用（她正在运行）';
+        document.getElementById('note').textContent = '桌宠正在运行：模型与画质会立即生效（换模型会整页重载，她的对话上下文会重新开始）。';
+      }
+    }
+    init();
+
+    document.getElementById('launch').addEventListener('click', () => {
+      if (!window.pet?.launcherLaunch) return;
+      const dpr = pick('dpr');
+      window.pet.launcherLaunch({
+        form: pick('form') || 'red',
+        size: pick('size') || 'standard',
+        dpr: dpr === null ? 2 : Number(dpr),
+        phys: pick('phys') || 'off',
+        skip: document.getElementById('skip').checked,
+      });
+      document.getElementById('note').textContent = '好嘞，这就去～';
+    });
+    document.getElementById('quit').addEventListener('click', () => window.pet?.quit?.());
+  </script>
+</body>
+</html>

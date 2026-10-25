@@ -61,8 +61,11 @@ const canvas = document.getElementById('stage');
 //     · 加载后把 2048×2048 贴图降采样到 1024：私有内存 2948→3642→3759 MB，**反而更差**
 //   这些是旧实验记录；运行时缩图会临时保留多份位图，不能据此排除贴图成本。
 //   当前版采用离线贴图、加载前 morph 白名单与稀疏表情，见 docs/第二轮内存优化.md。
+// 画质（2026-10-25）：?dpr= 设置渲染像素比上限（启动器「画质」选项），默认 2。
+// 流畅=1.25（最省显存）/ 标准=2 / 高清=3（高分屏更锐更占显存）。夹在 [1,3]。
+const DPR_CAP = Math.min(3, Math.max(1, Number(params.get('dpr')) || 2));
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, DPR_CAP));
 renderer.setClearAlpha(0);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -1907,8 +1910,8 @@ function tick() {
   const t = clock.elapsedTime;
   // 跨屏拖动时 devicePixelRatio 会变（如 1x 外接屏 ↔ 1.5x/2x 笔记本屏）。
   // 只在启动时设一次的话，拖过去后备缓冲还是旧 DPR，整只角色发虚。
-  // 每帧一次数值比较可忽略；真变化时 setPixelRatio 才重建缓冲。上限 2 沿用既定决策。
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  // 每帧一次数值比较可忽略；真变化时 setPixelRatio 才重建缓冲。上限来自 ?dpr=（默认 2）。
+  const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
   if (dpr !== renderer.getPixelRatio()) renderer.setPixelRatio(dpr);
   if (mesh) {
     applyIdle(dt, t);

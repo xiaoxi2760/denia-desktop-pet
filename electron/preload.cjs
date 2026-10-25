@@ -26,6 +26,8 @@ contextBridge.exposeInMainWorld('pet', {
   bridgeStatus: () => ipcRenderer.invoke('pet:bridge-status'),
   standaloneGet: () => ipcRenderer.invoke('pet:standalone-get'),
   standaloneSave: (cfg) => ipcRenderer.invoke('pet:standalone-save', cfg),
+  launcherState: () => ipcRenderer.invoke('pet:launcher-state'),
+  launcherLaunch: (opts) => ipcRenderer.send('pet:launcher-launch', opts),
   onCommand: (fn) => ipcRenderer.on('pet:command', (_e, cmd) => fn(cmd)),
   onFeed: (fn) => ipcRenderer.on('pet:feed', (_e, payload) => fn(payload)),
 });

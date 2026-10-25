@@ -450,13 +450,119 @@ function registerProtocol() {
   });
 }
 
-function createWindow() {
+// ── 启动器（2026-10-25）：启动时选模型 / 窗口大小 / 画质 / 物理 ──────────────
+// 配置存 userData/launcher.json（主进程持有：托盘换装、启动器、直启三条路径都写这里，
+// 避免和渲染层 localStorage 各记各的）。skip=true 时下次直接按记忆启动。
+const LAUNCHER_SIZES = {
+  mini: [440, 580],
+  standard: [660, 860],
+  large: [880, 1150],
+};
+const LAUNCHER_FORMS = [
+  { key: 'red', label: '红色毛茸袖（默认）', desc: '初版形态，贴图 1024 档最省内存' },
+  { key: 'blue', label: '蓝色形态', desc: '同红色管线，另一套配色' },
+  { key: 'solar5', label: 'Solar5 打歌服', desc: '2048 贴图，内存约为红色 3 倍' },
+  { key: 'white', label: '白裙绷带', desc: '含 4096 贴图，内存约为红色 5.9 倍' },
+];
+const LAUNCHER_DPRS = [
+  { value: 1.25, label: '流畅', desc: '渲染上限 1.25x，最省显存' },
+  { value: 2, label: '标准', desc: '渲染上限 2x（默认）' },
+  { value: 3, label: '高清', desc: '渲染上限 3x，高分屏更锐，更占显存' },
+];
+const LAUNCHER_PHYS = [
+  { key: 'off', label: '关闭（默认）', desc: '不加载物理引擎，最省内存' },
+  { key: 'safe', label: '裙摆 + 头发（推荐）', desc: '需要时才加载 Ammo' },
+  { key: 'full', label: '全部都飘', desc: '袖子也飘，容易穿模' },
+];
+let launcherWin = null;
+let launcherCfg = normalizeLauncherCfg(readLauncherCfg());
+
+function launcherCfgPath() { return path.join(app.getPath('userData'), 'launcher.json'); }
+function readLauncherCfg() {
+  try { return JSON.parse(fs.readFileSync(launcherCfgPath(), 'utf8')); } catch { return {}; }
+}
+function writeLauncherCfg(cfg) {
+  try {
+    fs.mkdirSync(app.getPath('userData'), { recursive: true });
+    fs.writeFileSync(launcherCfgPath(), JSON.stringify(cfg, null, 2));
+  } catch { /* 配置写不进就算了，这次仍按选择启动 */ }
+}
+function normalizeLauncherCfg(cfg) {
+  const c = cfg && typeof cfg === 'object' ? cfg : {};
+  return {
+    form: FORM_KEYS.includes(c.form) ? c.form : 'red',
+    size: LAUNCHER_SIZES[c.size] ? c.size : 'standard',
+    dpr: LAUNCHER_DPRS.some((d) => d.value === Number(c.dpr)) ? Number(c.dpr) : 2,
+    phys: LAUNCHER_PHYS.some((p) => p.key === c.phys) ? c.phys : 'off',
+    skip: !!c.skip,
+  };
+}
+function petQueryFromCfg(cfg) {
+  const q = new URLSearchParams();
+  // form 永远显式携带（包括 red）：渲染层在没有 form 参数时会回退到 localStorage 的
+  // 上次记录，切回默认形态时若不带参数会加载成旧形态。
+  if (cfg.form && FORM_KEYS.includes(cfg.form)) q.set('form', cfg.form);
+  if (cfg.dpr && cfg.dpr !== 2) q.set('dpr', String(cfg.dpr));
+  if (cfg.phys && cfg.phys !== 'off') q.set('phys', cfg.phys);
+  return q.toString();
+}
+
+function showLauncher() {
+  if (launcherWin && !launcherWin.isDestroyed()) { launcherWin.focus(); return; }
+  launcherWin = new BrowserWindow({
+    width: 480,
+    height: 640,
+    title: '娅娅 · 启动器',
+    autoHideMenuBar: true,
+    resizable: false,
+    maximizable: false,
+    show: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  launcherWin.once('ready-to-show', () => launcherWin.show());
+  launcherWin.on('closed', () => { launcherWin = null; });
+  launcherWin.loadURL(`${SCHEME}://app/launcher.html`);
+}
+
+ipcMain.handle('pet:launcher-state', () => ({
+  cfg: launcherCfg,
+  forms: LAUNCHER_FORMS,
+  sizes: Object.keys(LAUNCHER_SIZES),
+  dprs: LAUNCHER_DPRS,
+  phys: LAUNCHER_PHYS,
+  running: !!win,
+}));
+
+ipcMain.on('pet:launcher-launch', (_e, raw) => {
+  launcherCfg = normalizeLauncherCfg({ ...launcherCfg, ...(raw || {}) });
+  writeLauncherCfg(launcherCfg);
+  const query = petQueryFromCfg(launcherCfg);
+  const size = LAUNCHER_SIZES[launcherCfg.size] || LAUNCHER_SIZES.standard;
+  if (win) {
+    // 桌宠已在跑（从托盘打开的启动器）：直接套用——换形态整页重载，尺寸即时调整
+    currentForm = launcherCfg.form;
+    win.setSize(size[0], size[1]);
+    try { win.loadURL(`${SCHEME}://app/index.html${query ? '?' + query : ''}`); } catch { /* 窗口已关就算了 */ }
+    refreshTrayMenu();
+  } else {
+    createWindow({ size: launcherCfg.size, query });
+  }
+  try { launcherWin?.close(); } catch { /* 忽略 */ }
+});
+
+function createWindow(opts = {}) {
   const { workArea } = screen.getPrimaryDisplay();
   // 窗口尺寸：原来 420×780 太窄 —— 横向可视范围只有 7.5 个单位，而她张开手臂（含大袖子）
   // 有 8.8 个单位宽，手和袖口会被切在框外；说话"摊手"这类手势还会再往外 2 个单位。
   // 加宽到 660、高度 860，并留出余量，手和袖子就不会出框了。
-  const width = 660;
-  const height = 860;
+  // 2026-10-25 起尺寸可由启动器选择（LAUNCHER_SIZES），标准档保持 660×860。
+  const size = LAUNCHER_SIZES[opts.size] || LAUNCHER_SIZES.standard;
+  const width = size[0];
+  const height = size[1];
 
   win = new BrowserWindow({
     width,
@@ -493,7 +599,7 @@ function createWindow() {
     if (DEV) win.webContents.openDevTools({ mode: 'detach' });
   });
 
-  win.loadURL(`${SCHEME}://app/index.html`);
+  win.loadURL(`${SCHEME}://app/index.html${opts.query ? '?' + opts.query : ''}`);
   win.on('closed', () => { win = null; });
 }
 
@@ -542,12 +648,18 @@ function refreshTrayMenu() {
         click: () => {
           if (!win || currentForm === key) return;
           currentForm = key;
-          try { win.loadURL(`${SCHEME}://app/index.html?form=${encodeURIComponent(key)}`); } catch { /* 窗口已关就算了 */ }
+          // 同步进启动器配置：skip 直启路径下次就用这套形态，避免两处记忆打架
+          launcherCfg = normalizeLauncherCfg({ ...launcherCfg, form: key });
+          writeLauncherCfg(launcherCfg);
+          // 重载时带上画质/物理等启动参数：换形态不应该把画质设置弄丢
+          const q = petQueryFromCfg(launcherCfg);
+          try { win.loadURL(`${SCHEME}://app/index.html${q ? '?' + q : ''}`); } catch { /* 窗口已关就算了 */ }
         },
       })),
     },
     { label: '锁定位置（防误拖）', type: 'checkbox', checked: posLocked, click: () => { if (win) win.webContents.send('pet:command', 'lock:toggle'); } },
     { type: 'separator' },
+    { label: '🚀 启动选项…', click: () => showLauncher() },
     { label: '⚙️ 独立 AI 设置…', click: () => openSettingsWindow() },
     { type: 'separator' },
     {
@@ -1608,7 +1720,10 @@ setInterval(() => {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => { if (win) { win.showInactive(); } });
+  app.on('second-instance', () => {
+    if (launcherWin && !launcherWin.isDestroyed()) { launcherWin.focus(); return; }
+    if (win) { win.showInactive(); }
+  });
   app.on('will-quit', () => {
     try { whisperIdle.dispose(); } catch { /* 忽略 */ }
     // 2026-10-25：退出时杀掉自己拉的 SSH 隧道。原先只清 whisper，
@@ -1629,8 +1744,14 @@ if (!app.requestSingleInstanceLock()) {
       ses.setPermissionCheckHandler((_wc, permission) => permission === 'media');
     } catch { /* 权限接口异常也不该拦启动 */ }
     registerProtocol();
-    createWindow();
     createTray();
+    // 启动器（2026-10-25）：默认每次启动先选；勾选「下次直接启动」后按记忆直启。
+    // 托盘的「启动选项…」随时能再打开它改选择。
+    if (launcherCfg.skip) {
+      createWindow({ size: launcherCfg.size, query: petQueryFromCfg(launcherCfg) });
+    } else {
+      showLauncher();
+    }
   });
   app.on('window-all-closed', () => app.quit());
 }
