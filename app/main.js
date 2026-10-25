@@ -31,12 +31,27 @@ const FORMS = {
     '白裙绷带1.02',
     '鸣潮_达妮娅_白裙绷带1.02（额头前碎发修复）.pmx',
   ],
+  // 2026-10-26 两个新角色：各自是独立桌宠实例（主进程 --pet=aimisi / --pet=sigrid）
+  aimisi: [
+    '鸣潮_爱弥斯(绑骨修模后)',
+    '鸣潮_爱弥斯1.05',
+    '鸣潮_爱弥斯1.05.pmx',
+  ],
+  sigrid: [
+    '西格莉卡(修模绑骨后）',
+    '西格莉卡',
+    '西格莉卡.pmx',
+  ],
 };
-// 形态选择：URL ?form= 优先（托盘换装/调试用），否则用上次记住的选择，最后才落回红色。
+// 当前是哪个角色实例（主进程在页面 URL 带 ?pet=）：决定兜底默认形态与表情白名单。
+const PET_ID = params.get('pet') || 'yaya';
+const PET_DEFAULT_FORM = { yaya: 'red', aimisi: 'aimisi', sigrid: 'sigrid' };
+const formFallback = PET_DEFAULT_FORM[PET_ID] || 'red';
+// 形态选择：URL ?form= 优先（托盘换装/调试用），否则用上次记住的选择，最后落回本角色默认。
 // 记在 localStorage：托盘换装是整页重载，重启后仍保持上次的形态。
 const qForm = params.get('form');
 const savedForm = (() => { try { return localStorage.getItem('deniaForm'); } catch { return null; } })();
-const formKey = (qForm && FORMS[qForm]) ? qForm : ((savedForm && FORMS[savedForm]) ? savedForm : 'red');
+const formKey = (qForm && FORMS[qForm]) ? qForm : ((savedForm && FORMS[savedForm]) ? savedForm : formFallback);
 if (qForm && FORMS[qForm]) { try { localStorage.setItem('deniaForm', qForm); } catch { /* 忽略 */ } }
 const form = FORMS[formKey];
 
@@ -862,7 +877,7 @@ function applyIdle(dt, t) {
     state.blink = p < 0.5 ? p * 2 : Math.max(0, 2 - p * 2);
     if (p >= 1) { state.blink = 0; state.blinkStart = -1; }
   }
-  setMorph('まばたき', state.blink);
+  setMorph(M('まばたき'), state.blink);
 
   // 姿势自带的"神态"（趴着：眼皮半垂）：平滑混入；眨眼时取两者里更大的那个
   const wantMorphs = (POSTURES[postureTarget] || POSTURES.stand).morphs || null;
@@ -901,21 +916,21 @@ function applyIdle(dt, t) {
   }
   state.lookX += (state.lookTargetX - state.lookX) * Math.min(1, dt * 2.2);
   state.lookY += (state.lookTargetY - state.lookY) * Math.min(1, dt * 2.2);
-  setMorph('left', Math.max(0, -state.lookX) * 0.7);
-  setMorph('right', Math.max(0, state.lookX) * 0.7);
-  setMorph('up', Math.max(0, -state.lookY) * 0.7);
-  setMorph('down', Math.max(0, state.lookY) * 0.7);
+  setMorph(M('left'), Math.max(0, -state.lookX) * 0.7);
+  setMorph(M('right'), Math.max(0, state.lookX) * 0.7);
+  setMorph(M('up'), Math.max(0, -state.lookY) * 0.7);
+  setMorph(M('down'), Math.max(0, state.lookY) * 0.7);
 
   // 嘴型：有声音时按音频驱动；没声音（纯文字）时用元音轮转兜底
   const speaking = performance.now() / 1000 < state.speakingUntil;
   for (const v of ['あ', 'い', 'う', 'え', 'お']) setMorph(v, 0);
-  setMorph('口', 0);
+  setMorph(M('口'), 0);
   if (voicePlaying) {
     mouthTarget = sampleMouth();
     mouthValue += (mouthTarget - mouthValue) * Math.min(1, dt * 20);
-    setMorph('口', mouthValue);
-    setMorph('あ', mouthValue * 0.55);
-    setMorph('い', mouthValue * 0.18);
+    setMorph(M('口'), mouthValue);
+    setMorph(M('あ'), mouthValue * 0.55);
+    setMorph(M('い'), mouthValue * 0.18);
   } else if (speaking) {
     mouthValue = 0;
     const nowMs = performance.now();
@@ -925,18 +940,18 @@ function applyIdle(dt, t) {
       state.speakValue = 0.35 + Math.random() * 0.5;
     }
     if (state.speakVowel) setMorph(state.speakVowel, state.speakValue);
-    setMorph('口', state.speakValue * 0.4);
+    setMorph(M('口'), state.speakValue * 0.4);
   } else {
     mouthValue = 0;
   }
 
   // 情绪表情（先给温和的笑，接上大脑后由情绪驱动）
   const mood = state.surprise > 0 ? 0 : state.smile;
-  setMorph('にこり', mood);
-  setMorph('笑い', mood * 0.75);
-  setMorph('照れ', mood * 0.35);
-  setMorph('びっくり', state.surprise);
-  setMorph('笑い目', mood * 0.5);
+  setMorph(M('にこり'), mood);
+  setMorph(M('笑い'), mood * 0.75);
+  setMorph(M('照れ'), mood * 0.35);
+  setMorph(M('びっくり'), state.surprise);
+  setMorph(M('笑い目'), mood * 0.5);
 
   state.surprise = Math.max(0, state.surprise - dt * 1.6);
   state.jump = Math.max(0, state.jump - dt * bodyHeight * 0.06);
@@ -1944,8 +1959,30 @@ status('加载中：' + form[2]);
 // 且 setMorph 对缺失 morph 安全 no-op。旧做法是加载完再裁 morph 缓冲，
 // 峰值内存照样爆；现在交给 MMDLoader，在生成 morph attribute 之前就只产出这 16 个。
 // 默认加载器行为不变：只有显式 setMorphWhitelist 才会过滤。
-const MORPH_ALLOW = ['まばたき', 'left', 'right', 'up', 'down',
+// 表情白名单按形态/角色分表（2026-10-26）：白名单按名字精确匹配，不同角色的表情名
+// 完全不同——娅娅四套（达妮娅管线）共用一版；两个新角色各自的清单来自体检
+// （research/new-characters-2026-10-26/），覆盖眨眼/视线/口型/常用情绪。
+const DANIA_MORPHS = ['まばたき', 'left', 'right', 'up', 'down',
   'あ', 'い', 'う', 'え', 'お', '口', 'にこり', '笑い', '照れ', 'びっくり', '笑い目'];
+const MORPH_ALLOW_BY_FORM = {
+  red: DANIA_MORPHS, blue: DANIA_MORPHS, solar5: DANIA_MORPHS, white: DANIA_MORPHS,
+  // 爱弥斯与达妮娅同一作者管线：16 个表情名逐码点全同名（体检 verify.mjs 实测 16/16），直接复用
+  aimisi: DANIA_MORPHS,
+  // 西格莉卡 6 个名字不同（体检 sigrid-report.json）：视线首字母大写、口型主控叫「ああ」
+  //（本模型无「口」）、笑眼带 ASCII 加号；第 16 位补单眼眨眼 ウィンク２（备将来用）
+  sigrid: ['まばたき', 'Left', 'Right', 'Up', 'Down',
+    'あ', 'い', 'う', 'え', 'お', 'ああ', 'にこり', '照れ', 'びっくり', '笑い目+', 'ウィンク２'],
+};
+const MORPH_ALLOW = MORPH_ALLOW_BY_FORM[formKey] || DANIA_MORPHS;
+// 驱动逻辑用"角色中立名"（达妮娅名）调用，M() 按当前形态映射成实际名：
+// 视线/口型/情绪的 setMorph 调用点全部经 M() 取名；未列映射 = 名字相同。
+// （体检实证：西格莉卡视线方向与达妮娅同向，Left meanDx=+0.153 ≈ 达妮娅 left +0.122，换名无需翻符号）
+const MORPH_ALIASES_BY_FORM = {
+  red: {}, blue: {}, solar5: {}, white: {}, aimisi: {},
+  sigrid: { left: 'Left', right: 'Right', up: 'Up', down: 'Down', '口': 'ああ', '笑い目': '笑い目+' },
+};
+const MORPH_ALIAS = MORPH_ALIASES_BY_FORM[formKey] || {};
+const M = (name) => MORPH_ALIAS[name] || name;
 const mmdLoader = new MMDLoader();
 mmdLoader.setMorphWhitelist(MORPH_ALLOW);
 mmdLoader.load(

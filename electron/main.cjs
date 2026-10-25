@@ -16,10 +16,29 @@ const DEV = process.argv.includes('--dev');
 // 允许无人操作时自动播放她的语音
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 
+// ── 多角色独立桌宠（2026-10-26）：--pet=<id> 选角色 ─────────────────────
+// 每个角色 = 一个可**同时运行**的独立桌宠实例：独立单实例锁、独立 userData
+// （启动器记忆/设置/语音缓存）、独立 config.<id>.json（大脑/人设/密钥）。
+// 娅娅是不带参数的默认角色，沿用原 userData 与 config.local.json，完全向后兼容。
+const PET_ARG = process.argv.find((a) => a.startsWith('--pet='));
+const petIdRaw = (PET_ARG ? PET_ARG.slice(6) : 'yaya').trim();
+const PETS = {
+  yaya: { name: '娅娅', forms: ['red', 'blue', 'solar5', 'white'] },
+  aimisi: { name: '爱弥斯', forms: ['aimisi'] },
+  sigrid: { name: '西格莉卡', forms: ['sigrid'] },
+};
+const PET_ID = PETS[petIdRaw] ? petIdRaw : 'yaya';
+const PET = PETS[PET_ID];
+try {
+  if (PET_ID !== 'yaya') app.setPath('userData', path.join(app.getPath('userData'), PET_ID));
+} catch { /* 改不了就共用，只影响缓存隔离 */ }
+const LOCAL_CFG_FILE = PET_ID === 'yaya' ? 'config.local.json' : `config.${PET_ID}.json`;
+function localCfgPath() { return path.join(ROOT, LOCAL_CFG_FILE); }
+
 // ── 她的大脑：Windows → pc 的 SSH 隧道 + 桥接控制台接口 ──────────────
 function loadLocalConfig() {
   try {
-    return JSON.parse(fs.readFileSync(path.join(ROOT, 'config.local.json'), 'utf8'));
+    return JSON.parse(fs.readFileSync(localCfgPath(), 'utf8'));
   } catch {
     return {};
   }
@@ -102,7 +121,13 @@ STANDALONE.voice = Object.assign({}, STANDALONE_VOICE_DEFAULTS, (STANDALONE.voic
 if (!STANDALONE.voice.sapiVoice) STANDALONE.voice.sapiVoice = STANDALONE.ttsVoice || STANDALONE_VOICE_DEFAULTS.sapiVoice;
 
 function builtinStandalonePersona() {
+  // 每个角色实例有自己的内置人设卡：assets/persona-<petId>.md；
+  // 娅娅（默认）与未提供卡的角色回落到达妮娅官方卡。
   try {
+    if (PET_ID !== 'yaya') {
+      const per = fs.readFileSync(path.join(ROOT, 'assets', `persona-${PET_ID}.md`), 'utf8').trim();
+      if (per) return per;
+    }
     return fs.readFileSync(path.join(ROOT, 'assets', 'standalone-persona.md'), 'utf8').trim();
   } catch {
     return '你是《鸣潮》里的达妮娅，星炬学院的学生。';
@@ -422,9 +447,16 @@ let voiceMode = 'hold';      // 'hold' 按住说话 | 'hands' 免提对话
 // 换装（2026-10-25）：形态列表与渲染层 FORMS 的键保持一致（app/main.js）。
 // 当前值由渲染层 boot 时的 ui-state 上报同步——localStorage 记忆的形态只有渲染层知道。
 // 显示名按用户叫法定稿（2026-10-25）：red=白娅娅、blue=黑娅娅（键名保留历史值，只改显示）。
-const FORM_KEYS = ['red', 'blue', 'solar5', 'white'];
-const FORM_LABELS = { red: '白娅娅（默认）', blue: '黑娅娅', solar5: 'Solar5娅娅', white: '白裙绷带娅娅' };
-let currentForm = 'red';
+// 全部形态注册（达妮娅 4 套 + 两个新角色各 1 套）；每个角色实例只见自己的形态集
+const FORM_KEYS_ALL = ['red', 'blue', 'solar5', 'white', 'aimisi', 'sigrid'];
+const FORM_LABELS = {
+  red: '白娅娅（默认）', blue: '黑娅娅', solar5: 'Solar5娅娅', white: '白裙绷带娅娅',
+  aimisi: '爱弥斯', sigrid: '西格莉卡',
+};
+const FORM_KEYS = PET.forms.filter((k) => FORM_KEYS_ALL.includes(k));
+// 本角色的默认形态（娅娅=red，新角色=自己唯一那套）——normalize/查询串的兜底都用它
+const DEFAULT_FORM = FORM_KEYS[0] || 'red';
+let currentForm = DEFAULT_FORM;
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -506,12 +538,15 @@ const LAUNCHER_SIZES = {
   standard: [660, 860],
   large: [880, 1150],
 };
+// 全量形态选项；每个角色实例的启动器只显示自己那一套（FORM_KEYS 已按角色过滤）
 const LAUNCHER_FORMS = [
   { key: 'red', label: '白娅娅（默认）', desc: '初版形态（red ver），贴图 1024 档最省内存' },
   { key: 'blue', label: '黑娅娅', desc: '二形态（blue ver），另一套配色' },
   { key: 'solar5', label: 'Solar5娅娅', desc: '打歌服，2048 贴图，内存约为白娅娅 3 倍' },
   { key: 'white', label: '白裙绷带娅娅', desc: '含 4096 贴图，内存约为白娅娅 5.9 倍' },
-];
+  { key: 'aimisi', label: '爱弥斯', desc: '鸣潮新角色，独立桌宠（--pet=aimisi 实例）' },
+  { key: 'sigrid', label: '西格莉卡', desc: '鸣潮新角色，独立桌宠（--pet=sigrid 实例）' },
+].filter((f) => FORM_KEYS.includes(f.key));
 const LAUNCHER_DPRS = [
   { value: 1.25, label: '流畅', desc: '渲染上限 1.25x，最省显存' },
   { value: 2, label: '标准', desc: '渲染上限 2x（默认）' },
@@ -538,7 +573,7 @@ function writeLauncherCfg(cfg) {
 function normalizeLauncherCfg(cfg) {
   const c = cfg && typeof cfg === 'object' ? cfg : {};
   return {
-    form: FORM_KEYS.includes(c.form) ? c.form : 'red',
+    form: FORM_KEYS.includes(c.form) ? c.form : DEFAULT_FORM,
     size: LAUNCHER_SIZES[c.size] ? c.size : 'standard',
     dpr: LAUNCHER_DPRS.some((d) => d.value === Number(c.dpr)) ? Number(c.dpr) : 2,
     phys: LAUNCHER_PHYS.some((p) => p.key === c.phys) ? c.phys : 'off',
@@ -550,6 +585,8 @@ function petQueryFromCfg(cfg) {
   // form 永远显式携带（包括 red）：渲染层在没有 form 参数时会回退到 localStorage 的
   // 上次记录，切回默认形态时若不带参数会加载成旧形态。
   if (cfg.form && FORM_KEYS.includes(cfg.form)) q.set('form', cfg.form);
+  // pet 参数告诉渲染层'我是哪个角色实例'（决定它的兜底默认形态与表情白名单）
+  q.set('pet', PET_ID);
   if (cfg.dpr && cfg.dpr !== 2) q.set('dpr', String(cfg.dpr));
   if (cfg.phys && cfg.phys !== 'off') q.set('phys', cfg.phys);
   return q.toString();
@@ -560,7 +597,7 @@ function showLauncher() {
   launcherWin = new BrowserWindow({
     width: 480,
     height: 640,
-    title: '娅娅 · 启动器',
+    title: PET.name + ' · 启动器',
     icon: path.join(ROOT, 'assets', 'icon.ico'),
     autoHideMenuBar: true,
     resizable: false,
@@ -578,6 +615,7 @@ function showLauncher() {
 }
 
 ipcMain.handle('pet:launcher-state', () => ({
+  petName: PET.name,
   cfg: launcherCfg,
   forms: LAUNCHER_FORMS,
   sizes: Object.keys(LAUNCHER_SIZES),
@@ -639,7 +677,7 @@ ipcMain.on('pet:backend-save', (_e, raw) => {
     localCfg.standalone = (localCfg.standalone && typeof localCfg.standalone === 'object') ? localCfg.standalone : {};
     localCfg.standalone.enabled = backend === 'standalone';
     STANDALONE.enabled = localCfg.standalone.enabled;
-    fs.writeFileSync(path.join(ROOT, 'config.local.json'), JSON.stringify(localCfg, null, 2) + '\n');
+    fs.writeFileSync(localCfgPath(), JSON.stringify(localCfg, null, 2) + '\n');
     applyLocalCfgVars();
     // 换了地址/密钥后旧隧道作废，逼出一次重连
     try { if (tunnelProc && !tunnelProc.killed) tunnelProc.kill(); } catch { /* 忽略 */ }
@@ -667,12 +705,14 @@ function createWindow(opts = {}) {
   const size = LAUNCHER_SIZES[opts.size] || LAUNCHER_SIZES.standard;
   const width = size[0];
   const height = size[1];
+  // 多实例错位：多个角色同时跑时别完全叠在一起（娅娅原位，其余按角色序往左上错开）
+  const petShift = Object.keys(PETS).indexOf(PET_ID) * 44;
 
   win = new BrowserWindow({
     width,
     height,
-    x: workArea.x + workArea.width - width - 20,
-    y: workArea.y + workArea.height - height + 10,    // 脚底大致落在任务栏上方
+    x: workArea.x + workArea.width - width - 20 - petShift,
+    y: workArea.y + workArea.height - height + 10 - Math.round(petShift / 2),    // 脚底大致落在任务栏上方
     transparent: true,
     backgroundColor: '#00000000',
     frame: false,
@@ -683,7 +723,7 @@ function createWindow(opts = {}) {
     fullscreenable: false,
     alwaysOnTop,
     show: false,
-    title: '娅娅',
+    title: PET.name,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
@@ -778,7 +818,7 @@ function refreshTrayMenu() {
     { label: '退出', click: () => app.quit() },
   ]);
   tray.setContextMenu(menu);
-  tray.setToolTip('娅娅');
+  tray.setToolTip(PET.name);
 }
 
 function toggleVisible() {
@@ -801,7 +841,7 @@ function maybeShowHideHint() {
   try {
     if (Notification.isSupported()) {
       new Notification({
-        title: '娅娅藏起来了',
+        title: PET.name + '藏起来了',
         body: '叫她出来：按 Ctrl+Alt+Y，或再双击一次启动程序，或点任务栏托盘（可能收在 ^ 溢出区）。',
       }).show();
     }
@@ -1060,7 +1100,7 @@ function openSettingsWindow() {
   settingsWin = new BrowserWindow({
     width: 560,
     height: 780,
-    title: '娅娅 · 独立 AI 设置',
+    title: PET.name + ' · 独立 AI 设置',
     icon: path.join(ROOT, 'assets', 'icon.ico'),
     autoHideMenuBar: true,
     webPreferences: {
@@ -1134,7 +1174,7 @@ ipcMain.handle('pet:standalone-save', (_e, cfg) => {
     Object.assign(STANDALONE, next);
     const cur = loadLocalConfig();
     cur.standalone = next;
-    fs.writeFileSync(path.join(ROOT, 'config.local.json'), JSON.stringify(cur, null, 2) + '\n');
+    fs.writeFileSync(localCfgPath(), JSON.stringify(cur, null, 2) + '\n');
     return { ok: true, standalone: next };
   } catch (e) {
     return { ok: false, error: String(e?.message || e) };
@@ -1854,7 +1894,9 @@ setInterval(() => {
 // Windows 通知需要稳定的 AppUserModelId（否则 toast 可能发不出/归属错乱）
 try { app.setAppUserModelId('denia.yaya.pet'); } catch { /* 忽略 */ }
 
-if (!app.requestSingleInstanceLock()) {
+// 单实例锁按角色区分（additionalData 不同 = 不同的锁）：娅娅和爱弥斯可以同时跑，
+// 同一个角色重复启动则只聚焦已有实例。
+if (!app.requestSingleInstanceLock({ pet: PET_ID })) {
   app.quit();
 } else {
   app.on('second-instance', () => {

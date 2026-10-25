@@ -113,6 +113,12 @@
         return;
       }
       const cfg = state.cfg || {};
+      // 角色实例名（娅娅/爱弥斯/西格莉卡）：标题栏与页面标题都换成她
+      if (state.petName) {
+        document.title = state.petName + ' · 启动器';
+        const h1 = document.querySelector('h1');
+        if (h1) h1.textContent = document.title;
+      }
       radioGroup(document.getElementById('forms'), 'form',
         state.forms.map((f) => ({ key: f.key, label: f.label, desc: f.desc, dot: FORM_DOTS[f.key] || '#999' })),
         cfg.form || 'red', true);
