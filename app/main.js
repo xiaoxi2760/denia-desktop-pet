@@ -1970,6 +1970,34 @@ mmdLoader.load(
       }
       window.__maxAnisotropy = maxAniso;   // 调试/验收用
     }
+    // ── 形态条件化材质修复（2026-10-25）：黑娅娅胸口"声痕"镂空板透桌面 ──
+    // 现象：blue 形态胸口星形饰件区域半透明，桌面文字穿透（用户截图 + blue-before-capture.png
+    // 品红底透色都在同一位置）；red/solar5/white 无此症状。
+    // 依据（research/blue-transparency-fix-2026-10-25/，全部为脚本实测）：
+    //   · 材质表对照（dump-materials.mjs）：蓝模 28 个、红模 33 个材质的 PMX diffuse alpha
+    //     全部 = 1.0，按名对齐无可疑差值——不存在"不透明度被调低"，改 opacity 无对象可修。
+    //   · 「声痕」（蓝模材质表 idx 16）是蓝模独有材质，红模/solar5/white 的材质表里都没有
+    //     （逐个解析核对过）。它的贴图 tex/T_R2T1DaniyaMd10011Fx_D.png 使用区 656 个采样点
+    //     alpha 直方图 = {0:323, 1-127:3, 128-252:20, 253-254:2, 255:308}——一块比星形大的
+    //     镂空板（约一半全透明），透明区 RGB 纯黑（check-textures.mjs / finalize.mjs）。
+    //   · 机制：MMDLoader 给所有 MMD 材质恒设 CustomBlending+SrcAlpha（MMDLoader.js:1221-1225），
+    //     three.module.js:23240 只对 NormalBlending&&!transparent 关混合 → 贴图 alpha 直接
+    //     写进画布 alpha；透明窗口合成时 alpha<1 的像素就让桌面透进来。且镂空片元仍写深度，
+    //     把她胸口皮肤挡在深度测试外，皮肤补不上来 → 文字穿透"身体"。
+    // 修法：alphaTest=0.5 镂空。alpha<0.5 的片元整片 discard（不写色、不写深度）→ 身后皮肤
+    //     正常渲染；星形主体（alpha=255）完全不透明。直方图 0/255 两极分布，0.5 阈值两侧都
+    //     干净；透明区 RGB 本来就是黑色，也不存在"强制不透明露出黑底"的副作用。
+    // 安全性：formKey==="blue" 且材质名精确匹配「声痕」双重限定；眼睛高光（hi li/hi*.png）、
+    //     头发高光（*_hi.png）、圈、emo 这些两形态一致且本来就该镂空的材质一律不动；
+    //     不复制贴图（零额外显存），不改共享 shader。
+    if (formKey === 'blue') {
+      for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+        if (material?.name !== '声痕') continue;
+        material.alphaTest = 0.5;                  // 驱动 USE_ALPHATEST（three.module.js:20574→20005）
+        if (material.uniforms?.alphaTest) material.uniforms.alphaTest.value = 0.5; // ShaderMaterial 的 uniform 不会被 renderer 自动同步（refreshUniformsCommon 只管内置材质）
+        material.needsUpdate = true;
+      }
+    }
     morphs = { dict: mesh.morphTargetDictionary || {}, inf: mesh.morphTargetInfluences || [] };
     if (params.get('morph') !== 'dense') sparseMorphController = createSparseMorphController(mesh);
     window.__sparseMorphStats = sparseMorphController?.stats || { mode: 'dense' };

@@ -85,6 +85,21 @@
 - 代码已推送 GitHub 私有库 `xiaoxi2760/denia-desktop-pet`。注意：本机直连
   github.com 不通，git 网络操作需走 Clash 代理（`git -c http.proxy=http://127.0.0.1:7897 …`）。
 
+### 黑娅娅透明修复 + 新形态贴图降档
+
+- **修好黑娅娅"透出桌面文字"**。根因不是材质不透明度（蓝/红两模全部材质 alpha 都是 1.0），
+  而是蓝模独有材质「声痕」的贴图是一块镂空板（约半数像素 alpha=0）：MMDLoader 对 MMD
+  材质恒设 CustomBlending+SrcAlpha，贴图 alpha 直通透明窗口；镂空片元还写深度，把胸口
+  皮肤挡在后面。修法：该材质 alphaTest=0.5（formKey 与材质名双重限定，其他形态零影响）。
+  证据链与逐材质对照见 main.js 注释与 research/blue-transparency-fix-2026-10-25/。
+- **两套新形态贴图降档到红色档位**：Solar5娅娅 191→59 MiB、白裙绷带娅娅 383→71 MiB
+  （材质实际引用贴图的解码 RGBA 口径）。缩放脚本收进 tools/texture-downscale/（带
+  --max-edge/--threshold/--dry-run，换档重跑即可；原件在 D:\denia 根目录未动）。
+- 四形态多模态截图验证 4/4 通过（品红底铺色下放大检查：星形纹身/火纹/格子裙/绷带交叉
+  均不透底、无花屏无错位；截图在 research/visual-check-2026-10-25/）。
+- 新增 tools/capture-form.mjs：一键给指定形态铺底色截图的视觉回归工具。
+- 新增 docs/接入预设-DSH-bot.md（三套 bot 接入预设的第一套；AstrBot/MaiBot 见后续提交）。
+
 ## 2026-10-22 · 第二轮内存优化
 
 - 提前跳过未使用的表情缓冲，减少模型加载时的内存峰值。

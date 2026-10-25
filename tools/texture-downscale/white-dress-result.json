@@ -1,0 +1,205 @@
+{
+  "generatedAt": "2026-10-25T13:59:12.725Z",
+  "form": "white",
+  "auditSource": "research/model-adapt-2026-10-25/white-dress-audit.json (textureRefs)",
+  "pmxDir": "D:/denia/娅娅桌宠-v1.0-内存优化版/model/鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923/白裙绷带1.02",
+  "threshold": 2048,
+  "targetMaxEdge": 1024,
+  "metric": "textureRefs 中全部 PNG 的 宽×高×4 / 1048576（解码 RGBA），宽高读自 PNG IHDR 偏移16/20",
+  "pngRefCount": 20,
+  "beforeMiB": 383,
+  "afterMiB": 71,
+  "resizedCount": 14,
+  "resized": [
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011_BengdaiEye_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011_BengdaiEye_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 1437122,
+      "fileBytesAfter": 634971
+    },
+    {
+      "ref": "tex/hi li.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\hi li.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 488604,
+      "fileBytesAfter": 138723
+    },
+    {
+      "ref": "tex/hi2.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\hi2.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 48110,
+      "fileBytesAfter": 7017
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Eye1_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011Eye1_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 1874496,
+      "fileBytesAfter": 848802
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011_BengdaiFace_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011_BengdaiFace_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 1089738,
+      "fileBytesAfter": 581190
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011_Bengdai_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011_Bengdai_D.png",
+      "oldW": 4096,
+      "oldH": 4096,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 13803959,
+      "fileBytesAfter": 1756223
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Cloth_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011Cloth_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 4816319,
+      "fileBytesAfter": 2201901
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011_BengdaiDown_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011_BengdaiDown_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 3337745,
+      "fileBytesAfter": 1511341
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011_BengdaiUp_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011_BengdaiUp_D.png",
+      "oldW": 4096,
+      "oldH": 4096,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 5852763,
+      "fileBytesAfter": 900152
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011_BengdaiHair02_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011_BengdaiHair02_D.png",
+      "oldW": 4096,
+      "oldH": 4096,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 6513669,
+      "fileBytesAfter": 1079825
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011_BengdaiHair_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011_BengdaiHair_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 1887023,
+      "fileBytesAfter": 1290476
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Hair01_hi.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011Hair01_hi.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 101538,
+      "fileBytesAfter": 24806
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011_BengdaiBangs_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011_BengdaiBangs_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 1829354,
+      "fileBytesAfter": 1070310
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Bangs01_hi.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923\\白裙绷带1.02\\tex\\T_R2T1DaniyaMd10011Bangs01_hi.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "fileBytesBefore": 219530,
+      "fileBytesAfter": 73391
+    }
+  ],
+  "skipped": [
+    {
+      "ref": "tex/sink22.png",
+      "reason": "below-threshold",
+      "w": 512,
+      "h": 512
+    },
+    {
+      "ref": "tex/skin.bmp",
+      "reason": "not-png(.bmp)"
+    },
+    {
+      "ref": "tex/emo1010.png",
+      "reason": "below-threshold",
+      "w": 1024,
+      "h": 1024
+    },
+    {
+      "ref": "Tex/sinnk.png",
+      "reason": "below-threshold",
+      "w": 512,
+      "h": 512
+    },
+    {
+      "ref": "tex/sink2.bmp",
+      "reason": "not-png(.bmp)"
+    },
+    {
+      "ref": "tex/hair spa.png",
+      "reason": "below-threshold",
+      "w": 512,
+      "h": 512
+    },
+    {
+      "ref": "tex/hair hi light.png",
+      "reason": "below-threshold",
+      "w": 1024,
+      "h": 1024
+    },
+    {
+      "ref": "tex\\eye set emo.png",
+      "reason": "below-threshold",
+      "w": 1024,
+      "h": 1024
+    },
+    {
+      "ref": "Tex\\cheek_00.tga",
+      "reason": "not-png(.tga)"
+    }
+  ]
+}

@@ -1,0 +1,200 @@
+{
+  "form": "solar5",
+  "generatedAt": "2026-10-25T13:59:05.480Z",
+  "auditPath": "D:/denia/research/model-adapt-2026-10-25/solar5-audit.json",
+  "auditFieldNote": "solar5-audit.json 无 textureRefs 字段（grep 计数 0）；按 textures[].ref（相对 PMX 所在目录，20 项）取材质实际引用贴图清单",
+  "modelDirWork": "D:/denia/娅娅桌宠-v1.0-内存优化版/model/达妮娅_Solar5打歌服（领带uv修正）/达妮娅_Solar5打歌服1.12",
+  "originalDirRollback": "D:/denia/达妮娅_Solar5打歌服（领带uv修正）",
+  "targetMaxEdge": 1024,
+  "thresholdMaxEdge": 2048,
+  "mibScope": "textureRefs 全部 PNG 的 宽×高×4（解码RGBA）合计 / 1048576，宽高从 PNG IHDR 实读",
+  "beforeMiB": 191,
+  "afterMiB": 59,
+  "savedMiB": 132,
+  "resizedCount": 11,
+  "resized": [
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Eye1_D.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Eye1_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Eye1_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 1874496,
+      "bytesAfter": 851255
+    },
+    {
+      "ref": "tex/hi li.png",
+      "resolved": "TEX/hi li.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\hi li.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 488604,
+      "bytesAfter": 134035
+    },
+    {
+      "ref": "tex/hi1.png",
+      "resolved": "TEX/hi1.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\hi1.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 44205,
+      "bytesAfter": 6227
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Face01_D.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Face01_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Face01_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 1037636,
+      "bytesAfter": 581002
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Body_nvtuan_D.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Body_nvtuan_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Body_nvtuan_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 2593119,
+      "bytesAfter": 1053311
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Cloth_nvtuan_D.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Cloth_nvtuan_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Cloth_nvtuan_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 4244074,
+      "bytesAfter": 1911810
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Down_nvtuan_D.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Down_nvtuan_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Down_nvtuan_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 4552720,
+      "bytesAfter": 1999534
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Fx_D.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Fx_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Fx_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 199408,
+      "bytesAfter": 92093
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Bangs01_DH.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Bangs01_DH.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Bangs01_DH.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 2025312,
+      "bytesAfter": 1241178
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Bangs01_hi.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Bangs01_hi.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Bangs01_hi.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 219530,
+      "bytesAfter": 73207
+    },
+    {
+      "ref": "tex/T_R2T1DaniyaMd10011Hair_nvtuan_D.png",
+      "resolved": "TEX/T_R2T1DaniyaMd10011Hair_nvtuan_D.png",
+      "file": "D:\\denia\\娅娅桌宠-v1.0-内存优化版\\model\\达妮娅_Solar5打歌服（领带uv修正）\\达妮娅_Solar5打歌服1.12\\TEX\\T_R2T1DaniyaMd10011Hair_nvtuan_D.png",
+      "oldW": 2048,
+      "oldH": 2048,
+      "newW": 1024,
+      "newH": 1024,
+      "bytesBefore": 2790311,
+      "bytesAfter": 1481536
+    }
+  ],
+  "skipped": [
+    {
+      "ref": "tex/sink22.png",
+      "resolved": "TEX/sink22.png",
+      "w": 512,
+      "h": 512,
+      "reason": "max边512<2048(不碰)"
+    },
+    {
+      "ref": "tex/skin.bmp",
+      "resolved": "TEX/skin.bmp",
+      "reason": "非PNG(不碰)"
+    },
+    {
+      "ref": "tex/sink2.bmp",
+      "resolved": "TEX/sink2.bmp",
+      "reason": "非PNG(不碰)"
+    },
+    {
+      "ref": "tex/sinnk.png",
+      "resolved": "TEX/sinnk.png",
+      "w": 512,
+      "h": 512,
+      "reason": "max边512<2048(不碰)"
+    },
+    {
+      "ref": "tex/hair spa.png",
+      "resolved": "TEX/hair spa.png",
+      "w": 512,
+      "h": 512,
+      "reason": "max边512<2048(不碰)"
+    },
+    {
+      "ref": "tex/hair hi light.png",
+      "resolved": "TEX/hair hi light.png",
+      "w": 1024,
+      "h": 1024,
+      "reason": "max边1024<2048(不碰)"
+    },
+    {
+      "ref": "tex/emo1010.png",
+      "resolved": "TEX/emo1010.png",
+      "w": 1024,
+      "h": 1024,
+      "reason": "max边1024<2048(不碰)"
+    },
+    {
+      "ref": "tex\\eye set emo.png",
+      "resolved": "TEX/eye set emo.png",
+      "w": 1024,
+      "h": 1024,
+      "reason": "max边1024<2048(不碰)"
+    },
+    {
+      "ref": "Tex\\cheek_00.tga",
+      "resolved": "TEX/cheek_00.tga",
+      "reason": "非PNG(不碰)"
+    }
+  ],
+  "failed": [],
+  "missing": [],
+  "error": null
+}
