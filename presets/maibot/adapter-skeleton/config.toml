@@ -1,0 +1,34 @@
+# 娅娅桌宠 ↔ MaiBot 适配层配置
+# 改完保存，重启适配器生效。
+
+[server]
+host = "127.0.0.1"
+# 必须与桌宠 config.local.json 的 tunnelLocalPort 一致（桌宠恒拨 127.0.0.1:这个端口）
+port = 13100
+# 与桌宠 config.local.json 的 consoleToken 一致；留空 = 不校验（仅限本机回环使用）
+console_token = ""
+
+[maibot]
+# MaiBot 经典消息服务器；对应 MaiBot config/bot_config.toml 的
+# [maim_message] ws_server_host / ws_server_port（默认 ws://127.0.0.1:8000/ws）
+ws_url = "ws://127.0.0.1:8000/ws"
+# auth_token 配了才填（任一项原文，不加 Bearer）；默认空数组 = 不验证
+token = ""
+# 平台名：全局唯一即可；不要用 webui / bot_console / maisaka_cli（官方保留名）
+platform = "deskpet"
+# 本适配器的账号标识（出站路由用），随便起但要稳定
+self_id = "deskpet_bot"
+
+[owner]
+# 建议填桌宠 config.local.json 里的 ownerQQ——只影响"她眼里的你叫什么"
+user_id = "10001"
+# 必须非空（MaiBot 会断言 user_nickname 非空字符串）
+user_nickname = "主人"
+
+[timing]
+# 收到第一条回复后，静默多少毫秒视为"这轮说完了"，提前返回
+reply_quiet_ms = 4000
+# 整体等待上限；桌宠客户端 90 秒硬超时，此值必须小于 90000
+reply_deadline_ms = 80000
+# /recent 缓冲上限
+recent_max = 200

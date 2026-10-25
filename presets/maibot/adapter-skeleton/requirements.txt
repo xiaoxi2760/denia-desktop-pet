@@ -1,0 +1,4 @@
+# 版本与 MaiBot 主程序钉死的 maim-message 保持一致（MaiBot pyproject: maim-message==0.6.8）
+maim_message==0.6.8
+# HTTP 服务用 aiohttp（maim_message 自身也会带上，显式写出以便独立安装）
+aiohttp>=3.8.0

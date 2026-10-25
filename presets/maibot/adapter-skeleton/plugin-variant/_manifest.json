@@ -1,0 +1,33 @@
+{
+  "manifest_version": 2,
+  "id": "org.yaya.deskpet-gateway",
+  "version": "0.1.0",
+  "name": "娅娅桌宠网关",
+  "description": "把娅娅桌宠的 5 个 HTTP 接口桥接到 MaiBot：桌宠发话注入私聊管线，MaiBot 回复推回桌宠。备选接法（主推外挂进程版，见上级目录）。",
+  "author": {
+    "name": "denia research",
+    "url": "https://github.com/Mai-with-u/MaiBot"
+  },
+  "license": "MIT",
+  "urls": {
+    "repository": "https://github.com/Mai-with-u/MaiBot"
+  },
+  "host_application": {
+    "min_version": "1.3.0",
+    "max_version": "1.3.99"
+  },
+  "sdk": {
+    "min_version": "2.0.0",
+    "max_version": "2.99.99"
+  },
+  "capabilities": [
+    "send.text",
+    "chat.open_session",
+    "message.get_recent",
+    "maisaka.proactive",
+    "maisaka.context"
+  ],
+  "i18n": {
+    "default_locale": "zh-CN"
+  }
+}
