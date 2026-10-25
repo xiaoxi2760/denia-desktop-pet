@@ -165,9 +165,17 @@
 
   <label>上下文轮数 / 单次回复上限（tokens）</label>
   <div class="row">
-    <input id="historyLimit" type="number" style="width: 90px" value="40">
-    <input id="maxTokens" type="number" style="width: 110px" value="2048">
+    <input id="historyLimit" type="number" style="width: 90px" value="40" title="她记住的最近对话条数">
+    <input id="maxTokens" type="number" style="width: 110px" value="2048" title="单次回复的 max_tokens 上限">
   </div>
+
+  <label>生成参数（选填，留空 = 平台默认）</label>
+  <div class="row">
+    <input id="temperature" type="number" step="0.1" min="0" max="2" style="width: 90px" placeholder="温度" title="temperature 0~2：越低越稳、越高越跳；角色扮演一般 0.7~0.9">
+    <input id="topP" type="number" step="0.05" min="0.01" max="1" style="width: 90px" placeholder="top_p" title="top_p 0~1：和温度二选一调就行，留空跟随平台">
+    <input id="timeoutSec" type="number" min="10" max="300" style="width: 110px" placeholder="超时秒" title="等她回话的超时（秒），默认 120">
+  </div>
+  <p class="hint">温度和 top_p 只在填了的情况下才会发给接口（不填就不带这个参数，跟随平台默认）。</p>
 
   <div class="row">
     <button id="save">保存</button>
@@ -200,6 +208,9 @@
         $('persona').value = c.persona || '';
         $('historyLimit').value = c.historyLimit || 40;
         $('maxTokens').value = c.maxTokens || 2048;
+        $('temperature').value = (c.temperature === null || c.temperature === undefined) ? '' : c.temperature;
+        $('topP').value = (c.topP === null || c.topP === undefined) ? '' : c.topP;
+        $('timeoutSec').value = c.timeoutSec || 120;
         const v = c.voice || {};
         $('vEngine').value = v.engine || 'sapi';
         for (const f of VFIELDS) if (v[f] !== undefined && v[f] !== null) $(f).value = v[f];
@@ -225,6 +236,9 @@
         voice,
         historyLimit: Number($('historyLimit').value),
         maxTokens: Number($('maxTokens').value),
+        temperature: $('temperature').value === '' ? null : Number($('temperature').value),
+        topP: $('topP').value === '' ? null : Number($('topP').value),
+        timeoutSec: Number($('timeoutSec').value) || 120,
       });
     }
     $('save').onclick = async () => {

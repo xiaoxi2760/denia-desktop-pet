@@ -30,7 +30,9 @@ const getJson = async (p) => (await fetch(`http://127.0.0.1:${PORT}${p}`)).json(
 const restore = () => {
   try { if (backup === null) fs.rmSync(CFG, { force: true }); else fs.writeFileSync(CFG, backup); } catch { /* 尽力 */ }
 };
+let restoreBg = null;   // 关闭前把品红底还原（即使 Browser.close 失败，残留实例也不是紫的）
 const cleanup = async (graceful) => {
+  try { if (restoreBg) await restoreBg(); } catch { /* 尽力 */ }
   if (graceful) {
     try {
       const ver = await getJson('/json/version');
@@ -70,6 +72,20 @@ try {
     ws.send(JSON.stringify({ id: n, method, params }));
   });
 
+  // 2026-10-25：把窗口挪到主屏右侧屏幕外再截——之前品红底窗口会在用户桌面上
+  // 挂几十秒，被当成"桌宠出 bug 了"。挪出可视区后整个截图流程对用户无感。
+  try {
+    const scr = await send('Runtime.evaluate', { expression: 'window.pet.getScreen().then((s) => JSON.stringify(s.workArea))', awaitPromise: true, returnByValue: true });
+    const wa = JSON.parse(scr?.result?.result?.value || '{}');
+    if (wa && typeof wa.x === 'number' && typeof wa.width === 'number') {
+      const win = await send('Browser.getWindowForTarget', {});
+      const windowId = win?.result?.windowId;
+      if (windowId !== undefined) {
+        await send('Browser.setWindowBounds', { windowId, bounds: { left: wa.x + wa.width + 80, top: wa.y + 120 } });
+      }
+    }
+  } catch { /* 挪不出去就照常截，只是会被看见一会儿 */ }
+
   let loaded = false;
   for (let i = 0; i < 60; i++) {
     await sleep(1000);
@@ -84,6 +100,7 @@ try {
   // 铺品红底：alpha 画布透出 body 背景，半透明材质会透出品红，正常材质完全不透。
   // （试过 CDP Emulation.setDefaultBackgroundColorOverride，会被透明画布压成黑，不如 CSS 直铺）
   await send('Runtime.evaluate', { expression: "document.body.style.background='#ff00ff'" });
+  restoreBg = () => send('Runtime.evaluate', { expression: "document.body.style.background=''" });
   await sleep(800);
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   const b64 = shot?.result?.data;

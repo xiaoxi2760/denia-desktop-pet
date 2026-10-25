@@ -70,6 +70,10 @@ const STANDALONE = Object.assign({
   voice: {},
   historyLimit: 40,
   maxTokens: 2048,
+  // 生成参数（2026-10-25）：null = 不向接口发送该字段（跟随平台默认）
+  temperature: null,
+  topP: null,
+  timeoutSec: 120,          // 对话请求超时（秒）
 }, (localCfg.standalone && typeof localCfg.standalone === 'object') ? localCfg.standalone : {});
 STANDALONE.voice = Object.assign({}, STANDALONE_VOICE_DEFAULTS, (STANDALONE.voice && typeof STANDALONE.voice === 'object') ? STANDALONE.voice : {});
 // 兼容更早的配置：声音名写在 ttsVoice 里
@@ -240,7 +244,20 @@ async function standaloneReply(text) {
   const keep = Math.max(2, Number(STANDALONE.historyLimit) || 40);
   while (STANDALONE_HISTORY.length > keep) STANDALONE_HISTORY.shift();
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), 120000);
+  // 超时可配（2026-10-25）：默认 120s，夹在 [10,300]。别超过 90s 太多——
+  // 联机模式的客户端硬超时是 90s，独立模式没有这个限制但等太久也没意义。
+  const timeoutMs = Math.min(300, Math.max(10, Number(STANDALONE.timeoutSec) || 120)) * 1000;
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  // 生成参数只在用户填了的情况下才发送（部分平台收到非预期参数会报错）
+  const optNum = (v) => {
+    const n = Number(v);
+    return (v === null || v === undefined || v === '' || !Number.isFinite(n)) ? null : n;
+  };
+  const genParams = {};
+  const temperature = optNum(STANDALONE.temperature);
+  const topP = optNum(STANDALONE.topP);
+  if (temperature !== null) genParams.temperature = temperature;
+  if (topP !== null) genParams.top_p = topP;
   try {
     const res = await fetch(`${String(STANDALONE.baseUrl).replace(/\/+$/, '')}/chat/completions`, {
       method: 'POST',
@@ -251,6 +268,7 @@ async function standaloneReply(text) {
           ? [{ role: 'system', content: sys }, ...STANDALONE_HISTORY.slice(0, -1), userMsg]
           : [{ role: 'system', content: sys }, ...STANDALONE_HISTORY],
         max_tokens: Math.max(64, Number(STANDALONE.maxTokens) || 2048),
+        ...genParams,
         stream: false,
       }),
       signal: ctl.signal,
@@ -1030,6 +1048,10 @@ ipcMain.handle('pet:standalone-save', (_e, cfg) => {
       voice,
       historyLimit: Math.min(200, Math.max(2, Number(cfg?.historyLimit) || 40)),
       maxTokens: Math.min(16384, Math.max(64, Number(cfg?.maxTokens) || 2048)),
+      // 生成参数：空/非数 = null（不发送）；范围夹紧
+      temperature: (() => { const n = Number(cfg?.temperature); return (cfg?.temperature === null || cfg?.temperature === undefined || cfg?.temperature === '' || !Number.isFinite(n)) ? null : Math.min(2, Math.max(0, n)); })(),
+      topP: (() => { const n = Number(cfg?.topP); return (cfg?.topP === null || cfg?.topP === undefined || cfg?.topP === '' || !Number.isFinite(n)) ? null : Math.min(1, Math.max(0.01, n)); })(),
+      timeoutSec: Math.min(300, Math.max(10, Number(cfg?.timeoutSec) || 120)),
     };
     Object.assign(STANDALONE, next);
     const cur = loadLocalConfig();
