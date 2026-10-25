@@ -47,6 +47,7 @@
 
   <div class="btns">
     <button class="ghost" id="quit">退出</button>
+    <button class="ghost" id="restart" hidden>🔄 重启</button>
     <button id="launch">🚀 启动</button>
   </div>
   <p id="note"></p>
@@ -102,7 +103,8 @@
       document.getElementById('skip').checked = !!cfg.skip;
       if (state.running) {
         document.getElementById('launch').textContent = '应用（她正在运行）';
-        document.getElementById('note').textContent = '桌宠正在运行：模型与画质会立即生效（换模型会整页重载，她的对话上下文会重新开始）。';
+        document.getElementById('restart').hidden = false;
+        document.getElementById('note').textContent = '桌宠正在运行：点「应用」立即换形态/大小/画质（换模型会整页重载，对话重新开始）；「重启」会关掉整个程序再自动起来；这个窗口启动后会缩到后台，托盘、右键她本人、或再双击一次启动程序都能唤出来。';
       }
     }
     init();
@@ -117,8 +119,9 @@
         phys: pick('phys') || 'off',
         skip: document.getElementById('skip').checked,
       });
-      document.getElementById('note').textContent = '好嘞，这就去～';
+      document.getElementById('note').textContent = '好嘞，这就去～（窗口会缩到后台，随时再唤出来）';
     });
+    document.getElementById('restart').addEventListener('click', () => window.pet?.relaunch?.());
     document.getElementById('quit').addEventListener('click', () => window.pet?.quit?.());
   </script>
 </body>

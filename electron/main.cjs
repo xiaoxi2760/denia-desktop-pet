@@ -374,8 +374,9 @@ let posLocked = false;       // 锁定位置（防误拖）——由渲染层同
 let voiceMode = 'hold';      // 'hold' 按住说话 | 'hands' 免提对话
 // 换装（2026-10-25）：形态列表与渲染层 FORMS 的键保持一致（app/main.js）。
 // 当前值由渲染层 boot 时的 ui-state 上报同步——localStorage 记忆的形态只有渲染层知道。
+// 显示名按用户叫法定稿（2026-10-25）：red=白娅娅、blue=黑娅娅（键名保留历史值，只改显示）。
 const FORM_KEYS = ['red', 'blue', 'solar5', 'white'];
-const FORM_LABELS = { red: '红色（默认）', blue: '蓝色', solar5: 'Solar5 打歌服', white: '白裙绷带' };
+const FORM_LABELS = { red: '白娅娅（默认）', blue: '黑娅娅', solar5: 'Solar5娅娅', white: '白裙绷带娅娅' };
 let currentForm = 'red';
 
 protocol.registerSchemesAsPrivileged([
@@ -459,10 +460,10 @@ const LAUNCHER_SIZES = {
   large: [880, 1150],
 };
 const LAUNCHER_FORMS = [
-  { key: 'red', label: '红色毛茸袖（默认）', desc: '初版形态，贴图 1024 档最省内存' },
-  { key: 'blue', label: '蓝色形态', desc: '同红色管线，另一套配色' },
-  { key: 'solar5', label: 'Solar5 打歌服', desc: '2048 贴图，内存约为红色 3 倍' },
-  { key: 'white', label: '白裙绷带', desc: '含 4096 贴图，内存约为红色 5.9 倍' },
+  { key: 'red', label: '白娅娅（默认）', desc: '初版形态（red ver），贴图 1024 档最省内存' },
+  { key: 'blue', label: '黑娅娅', desc: '二形态（blue ver），另一套配色' },
+  { key: 'solar5', label: 'Solar5娅娅', desc: '打歌服，2048 贴图，内存约为白娅娅 3 倍' },
+  { key: 'white', label: '白裙绷带娅娅', desc: '含 4096 贴图，内存约为白娅娅 5.9 倍' },
 ];
 const LAUNCHER_DPRS = [
   { value: 1.25, label: '流畅', desc: '渲染上限 1.25x，最省显存' },
@@ -508,11 +509,12 @@ function petQueryFromCfg(cfg) {
 }
 
 function showLauncher() {
-  if (launcherWin && !launcherWin.isDestroyed()) { launcherWin.focus(); return; }
+  if (launcherWin && !launcherWin.isDestroyed()) { launcherWin.show(); launcherWin.focus(); return; }
   launcherWin = new BrowserWindow({
     width: 480,
     height: 640,
     title: '娅娅 · 启动器',
+    icon: path.join(ROOT, 'assets', 'icon.ico'),
     autoHideMenuBar: true,
     resizable: false,
     maximizable: false,
@@ -551,7 +553,15 @@ ipcMain.on('pet:launcher-launch', (_e, raw) => {
   } else {
     createWindow({ size: launcherCfg.size, query });
   }
-  try { launcherWin?.close(); } catch { /* 忽略 */ }
+  // 启动器不关闭，只隐藏（2026-10-25 用户点单）：驻留后台，方便随时换形态/重启/关闭。
+  // 唤出路径：托盘「启动选项…」、右键她本人、或再双击一次启动程序。
+  try { launcherWin?.hide(); } catch { /* 忽略 */ }
+});
+
+ipcMain.on('pet:relaunch', () => {
+  // 完整重启整个应用（启动器「🔄 重启」）：配置已在磁盘，重启后按记忆走
+  app.relaunch();
+  app.quit();
 });
 
 function createWindow(opts = {}) {
@@ -940,6 +950,7 @@ ipcMain.on('pet:context-menu', () => {
     { label: '让她歇会儿', click: () => win.webContents.send('pet:command', 'rest') },
     { label: '打个招呼', click: () => win.webContents.send('pet:command', 'wave') },
     { type: 'separator' },
+    { label: '🚀 启动选项…', click: () => showLauncher() },
     { label: '⚙️ 独立 AI 设置…', click: () => openSettingsWindow() },
     { label: '藏起来（Ctrl+Alt+Y）', click: toggleVisible },
     { label: '退出', click: () => app.quit() },
@@ -954,6 +965,7 @@ function openSettingsWindow() {
     width: 560,
     height: 780,
     title: '娅娅 · 独立 AI 设置',
+    icon: path.join(ROOT, 'assets', 'icon.ico'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
@@ -1746,8 +1758,9 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
-    if (launcherWin && !launcherWin.isDestroyed()) { launcherWin.focus(); return; }
-    // 再启动一次 = 把她叫出来（托盘被 Win11 收进溢出区时的救命路径之一）
+    // 藏着的她优先叫出来（恢复路径）；她可见时则唤出驻留的启动器（换形态/重启/关闭）
+    if (win && !win.isVisible()) { win.showInactive(); return; }
+    if (launcherWin && !launcherWin.isDestroyed()) { launcherWin.show(); launcherWin.focus(); return; }
     if (win) { win.showInactive(); }
   });
   app.on('will-quit', () => {

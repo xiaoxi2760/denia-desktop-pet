@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('pet', {
   dragStart: () => ipcRenderer.send('pet:drag-start'),
   dragEnd: () => ipcRenderer.send('pet:drag-end'),
   quit: () => ipcRenderer.send('pet:quit'),
+  relaunch: () => ipcRenderer.send('pet:relaunch'),
   info: () => ipcRenderer.invoke('pet:info'),
   idleTime: () => ipcRenderer.invoke('pet:idle'),
   say: (text) => ipcRenderer.invoke('pet:say', text),

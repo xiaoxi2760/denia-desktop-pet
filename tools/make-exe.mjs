@@ -9,6 +9,7 @@
 // userData 仍按 package.json 的 name（denia-desktop）走 %APPDATA%，与开发目录共用配置。
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 
 const SRC = path.resolve(import.meta.dirname, '..');
 const OUT = path.join(SRC, '发布', '娅娅桌宠');
@@ -65,16 +66,39 @@ for (const name of ['package.json', 'package-lock.json', 'config.example.json', 
 console.log('[4/6] 复制模型（较大，稍等）…');
 copyDir(path.join(SRC, 'model'), path.join(APP, 'model'));
 
-console.log('[5/6] 改名 exe + 生成图标 …');
+console.log('[5/6] 改名 exe + 图标 …');
 fs.renameSync(path.join(OUT, 'electron.exe'), path.join(OUT, '娅娅.exe'));
-pngToIco(path.join(SRC, 'assets', 'tray.png'), path.join(OUT, '娅娅.ico'));
+// 快捷方式图标：优先用 tools/make-icon.mjs 生成的多尺寸 icon.ico；没有就单尺寸兜底
+const iconSrc = fs.existsSync(path.join(SRC, 'assets', 'icon.ico'))
+  ? path.join(SRC, 'assets', 'icon.ico') : null;
+if (iconSrc) {
+  fs.copyFileSync(iconSrc, path.join(OUT, '娅娅.ico'));
+} else {
+  pngToIco(path.join(SRC, 'assets', 'tray.png'), path.join(OUT, '娅娅.ico'));
+}
+// exe 内嵌图标（rcedit）：文件管理器/任务栏里就不是 Electron 默认图标了。
+// 工具随仓库带（tools/rcedit-x64.exe，GitHub releases v2.0.0）；没有就跳过并提示。
+const rcedit = path.join(SRC, 'tools', 'rcedit-x64.exe');
+const icoForExe = path.join(OUT, '娅娅.ico');
+if (fs.existsSync(rcedit)) {
+  const r = spawnSync(rcedit, [path.join(OUT, '娅娅.exe'), '--set-icon', icoForExe], { encoding: 'utf8' });
+  if (r.status === 0) {
+    console.log('  exe 图标已内嵌。');
+  } else {
+    console.log('  ⚠ rcedit 失败（图标未内嵌，快捷方式仍可用 娅娅.ico）：', (r.stderr || r.stdout || '').trim().slice(0, 200));
+  }
+} else {
+  console.log('  ⚠ 缺 tools/rcedit-x64.exe，跳过 exe 内嵌图标（不影响功能）。');
+}
 
 fs.writeFileSync(path.join(OUT, '使用说明.txt'), [
   '娅娅 · 桌面宠物（免安装版）',
   '',
-  '· 双击「娅娅.exe」启动：先出启动器，选模型 / 窗口大小 / 画质 / 物理再叫她出来。',
+  '· 双击「娅娅.exe」启动：先出启动器，选形态（白娅娅 / 黑娅娅 / Solar5娅娅 / 白裙绷带娅娅）、',
+  '  窗口大小、画质和物理再叫她出来。启动器启动后会缩到后台，托盘菜单、右键她本人、',
+  '  或再双击一次娅娅.exe 都能重新唤出来（换形态 / 重启 / 关闭都在里面）。',
   '· 她是透明置顶窗口，不进任务栏（桌宠的常态）。',
-  '· 叫她出来 / 藏起来：Ctrl+Alt+Y，或再双击一次娅娅.exe，或点任务栏托盘图标',
+  '· 藏起来 / 叫出来：Ctrl+Alt+Y，或再双击一次娅娅.exe，或点任务栏托盘图标',
   '  （Win11 可能把它收在任务栏右下角的 ^ 溢出区里，可以拖出来固定）。',
   '· 开机自启：托盘菜单勾「开机自动出现」，或 Win+R 输入 shell:startup，',
   '  把娅娅.exe 的快捷方式放进去。',
