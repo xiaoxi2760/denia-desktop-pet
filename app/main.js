@@ -19,8 +19,25 @@ const FORMS = {
     '鸣潮_达妮娅（蓝色形态）',
     '鸣潮_达妮娅1.2（blue ver）.pmx',
   ],
+  // 2026-10-25 新增两套（体检报告见 research/model-adapt-2026-10-25/）：
+  // 两套的 16 个白名单表情与全部需求骨骼都逐个核对过，MORPH_ALLOW 无需改。
+  solar5: [
+    '达妮娅_Solar5打歌服（领带uv修正）',
+    '达妮娅_Solar5打歌服1.12',
+    '达妮娅_Solar5打歌服1.12.pmx',
+  ],
+  white: [
+    '鸣潮_达妮娅_白裙绷带(修模绑骨后）_by_鸣潮_556e8ac6dabdfeb7db46131a387ec923',
+    '白裙绷带1.02',
+    '鸣潮_达妮娅_白裙绷带1.02（额头前碎发修复）.pmx',
+  ],
 };
-const formKey = params.get('form') === 'blue' ? 'blue' : 'red';
+// 形态选择：URL ?form= 优先（托盘换装/调试用），否则用上次记住的选择，最后才落回红色。
+// 记在 localStorage：托盘换装是整页重载，重启后仍保持上次的形态。
+const qForm = params.get('form');
+const savedForm = (() => { try { return localStorage.getItem('deniaForm'); } catch { return null; } })();
+const formKey = (qForm && FORMS[qForm]) ? qForm : ((savedForm && FORMS[savedForm]) ? savedForm : 'red');
+if (qForm && FORMS[qForm]) { try { localStorage.setItem('deniaForm', qForm); } catch { /* 忽略 */ } }
 const form = FORMS[formKey];
 
 // 浏览器调试走本地静态服务，Electron 里走 denia:// 协议
@@ -1398,7 +1415,7 @@ const rec = { active: false, mr: null, stream: null, chunks: [], t0: 0 };
 let posLocked = false;
 try { posLocked = localStorage.getItem('posLocked') === '1'; } catch { /* 忽略 */ }
 function getVoiceMode() { try { return localStorage.getItem('voiceMode') === 'hands' ? 'hands' : 'hold'; } catch { return 'hold'; } }
-function reportUiState() { window.pet?.uiState?.({ locked: posLocked, voiceMode: getVoiceMode() }); }
+function reportUiState() { window.pet?.uiState?.({ locked: posLocked, voiceMode: getVoiceMode(), form: formKey }); }
 reportUiState();
 const hf = { on: false, stream: null, ctx: null, analyser: null, mr: null, chunks: [], speech: false, lastVoice: 0, t0: 0, timer: null, floor: 0.008, level: 0 };
 

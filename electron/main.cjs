@@ -372,6 +372,11 @@ let poseWindowDy = 0;        // 当前姿势带来的下移量
 let freeRoam = true;         // 自由活动开关
 let posLocked = false;       // 锁定位置（防误拖）——由渲染层同步（pet:ui-state）
 let voiceMode = 'hold';      // 'hold' 按住说话 | 'hands' 免提对话
+// 换装（2026-10-25）：形态列表与渲染层 FORMS 的键保持一致（app/main.js）。
+// 当前值由渲染层 boot 时的 ui-state 上报同步——localStorage 记忆的形态只有渲染层知道。
+const FORM_KEYS = ['red', 'blue', 'solar5', 'white'];
+const FORM_LABELS = { red: '红色（默认）', blue: '蓝色', solar5: 'Solar5 打歌服', white: '白裙绷带' };
+let currentForm = 'red';
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -526,6 +531,21 @@ function refreshTrayMenu() {
     { label: '大一点', click: () => scaleWindow(1.1) },
     { label: '小一点', click: () => scaleWindow(1 / 1.1) },
     { label: '回到右下角', click: moveToCorner },
+    {
+      // 换装（2026-10-25）：整页重载换模型；渲染层会把选择记进 localStorage，
+      // 下次启动自动恢复（托盘勾选状态由 pet:ui-state 的 form 字段同步回来）。
+      label: '换装',
+      submenu: FORM_KEYS.map((key) => ({
+        label: FORM_LABELS[key],
+        type: 'radio',
+        checked: currentForm === key,
+        click: () => {
+          if (!win || currentForm === key) return;
+          currentForm = key;
+          try { win.loadURL(`${SCHEME}://app/index.html?form=${encodeURIComponent(key)}`); } catch { /* 窗口已关就算了 */ }
+        },
+      })),
+    },
     { label: '锁定位置（防误拖）', type: 'checkbox', checked: posLocked, click: () => { if (win) win.webContents.send('pet:command', 'lock:toggle'); } },
     { type: 'separator' },
     { label: '⚙️ 独立 AI 设置…', click: () => openSettingsWindow() },
@@ -652,6 +672,10 @@ ipcMain.on('pet:ui-state', (_e, st) => {
   if (!st) return;
   if (typeof st.locked === 'boolean') posLocked = st.locked;
   if (st.voiceMode === 'hold' || st.voiceMode === 'hands') voiceMode = st.voiceMode;
+  if (typeof st.form === 'string' && FORM_KEYS.includes(st.form) && st.form !== currentForm) {
+    currentForm = st.form;
+    refreshTrayMenu();   // 换装单选的勾选要跟上（含启动时从 localStorage 恢复的形态）
+  }
 });
 
 function moveToCorner() {
