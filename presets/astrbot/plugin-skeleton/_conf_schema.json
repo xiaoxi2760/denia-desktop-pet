@@ -1,0 +1,46 @@
+{
+  "console_token": {
+    "description": "桥接口令（必填）",
+    "type": "string",
+    "hint": "和桌宠 config.local.json 里的 consoleToken 填一模一样的值。不填则插件拒绝所有桥接请求。",
+    "obvious_hint": true,
+    "secret": true,
+    "default": ""
+  },
+  "host": {
+    "description": "监听地址",
+    "type": "string",
+    "hint": "桌宠和 AstrBot 在同一台电脑就保持 127.0.0.1；在不同机器/容器里改成 0.0.0.0。",
+    "default": "127.0.0.1"
+  },
+  "port": {
+    "description": "监听端口",
+    "type": "int",
+    "hint": "和桌宠 config.local.json 里的 bridgePort 保持一致（默认 3100）。",
+    "default": 3100
+  },
+  "persona": {
+    "description": "她的人设（系统提示词）",
+    "type": "text",
+    "hint": "每一次回话都会作为 system 提示词注入。写成她对'你是谁、说话什么风格'的描述，例如：你是娅娅，说话简短俏皮……",
+    "default": ""
+  },
+  "provider_id": {
+    "description": "指定聊天模型 ID（可留空）",
+    "type": "string",
+    "hint": "留空 = 用 AstrBot 当前默认的聊天模型。要指定就填 WebUI『服务提供商』里的提供商 ID。",
+    "default": ""
+  },
+  "history_limit": {
+    "description": "记忆条数上限",
+    "type": "int",
+    "hint": "每个桌宠用户（按 key 记忆）最多保留最近多少条对话（一问一答算两条）。仅存内存，重启 AstrBot 后清空。",
+    "default": 20
+  },
+  "request_timeout_ms": {
+    "description": "回话最长时间（毫秒）",
+    "type": "int",
+    "hint": "到点没等到模型回复就按协议返回『沉默』（reply 为空串）。必须小于桌宠的 90 秒硬超时，默认 85 秒。",
+    "default": 85000
+  }
+}

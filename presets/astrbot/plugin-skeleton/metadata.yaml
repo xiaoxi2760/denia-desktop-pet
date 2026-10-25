@@ -1,0 +1,8 @@
+name: astrbot_plugin_pet_bridge # 插件唯一识别名（data/plugins 下目录名需与此一致）
+display_name: 娅娅桌宠桥接 # 展示名，需要 AstrBot >= v4.5.0
+desc: 为娅娅桌宠联机模式提供 HTTP 桥接（/api/status、/api/socialV2/pet-chat 等 5 接口），pet-chat 直调 AstrBot 的 LLM，人设可在插件配置中注入。
+help: 在 WebUI 插件配置里填 console_token（与桌宠 config.local.json 的 consoleToken 一致）、host/port（默认 127.0.0.1:3100，与桌宠 bridgePort 一致）、persona（她的人设）。配置后重载插件生效。
+version: v1.0.0
+author: denia
+repo: "" # 本地骨架没有仓库地址，先留空
+astrbot_version: ">=4.5.7" # 用到 get_using_provider_async / text_chat 的 v4.x 接口；实际开发与核对基于 v4.29.3
