@@ -25,3 +25,6 @@ model/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# 打包产物（exe 发布目录，体积大且可随时重建）
+发布/

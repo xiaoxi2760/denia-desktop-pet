@@ -1,6 +1,6 @@
 // 娅娅桌面版 · 主进程
 // 职责：透明置顶窗口 / 本地资源协议 / 托盘 / 拖拽 / 鼠标穿透 / 右键菜单
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, protocol, screen, shell, powerMonitor, session, desktopCapturer } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, protocol, screen, shell, powerMonitor, session, desktopCapturer, globalShortcut, Notification } = require('electron');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
@@ -631,7 +631,7 @@ function buildTrayIcon() {
 function refreshTrayMenu() {
   if (!tray) return;
   const menu = Menu.buildFromTemplate([
-    { label: win && win.isVisible() ? '藏起来' : '出来吧', click: toggleVisible },
+    { label: (win && win.isVisible() ? '藏起来' : '出来吧') + '（Ctrl+Alt+Y）', click: toggleVisible },
     { label: '置顶', type: 'checkbox', checked: alwaysOnTop, click: (item) => setAlwaysOnTop(item.checked) },
     { type: 'separator' },
     { label: '大一点', click: () => scaleWindow(1.1) },
@@ -678,9 +678,29 @@ function refreshTrayMenu() {
 
 function toggleVisible() {
   if (!win) return;
-  if (win.isVisible()) win.hide();
-  else win.showInactive();
+  if (win.isVisible()) {
+    win.hide();
+    maybeShowHideHint();
+  } else {
+    win.showInactive();
+  }
   refreshTrayMenu();
+}
+
+// 藏起来之后"找不着"的兜底（2026-10-25）：Win11 默认把托盘图标收进溢出区，
+// 第一次藏起来时用系统通知把三条恢复路径都告诉她。
+function maybeShowHideHint() {
+  if (launcherCfg.hideHintShown) return;
+  launcherCfg = { ...launcherCfg, hideHintShown: true };
+  writeLauncherCfg(launcherCfg);
+  try {
+    if (Notification.isSupported()) {
+      new Notification({
+        title: '娅娅藏起来了',
+        body: '叫她出来：按 Ctrl+Alt+Y，或再双击一次启动程序，或点任务栏托盘（可能收在 ^ 溢出区）。',
+      }).show();
+    }
+  } catch { /* 通知发不出就算了，还有热键和再启动两条路 */ }
 }
 
 function setAlwaysOnTop(value) {
@@ -921,7 +941,7 @@ ipcMain.on('pet:context-menu', () => {
     { label: '打个招呼', click: () => win.webContents.send('pet:command', 'wave') },
     { type: 'separator' },
     { label: '⚙️ 独立 AI 设置…', click: () => openSettingsWindow() },
-    { label: '藏起来', click: toggleVisible },
+    { label: '藏起来（Ctrl+Alt+Y）', click: toggleVisible },
     { label: '退出', click: () => app.quit() },
   ]).popup({ window: win });
 });
@@ -1078,6 +1098,8 @@ ipcMain.handle('pet:env', async () => {
     bounds: win ? win.getBounds() : null,
     fg: fgCache.value,
     walking: !!walkTimer,
+    // 调试/自检：全局热键是否注册成功（Ctrl+Alt+Y 藏/显）
+    hotkey: (() => { try { return globalShortcut.isRegistered('Ctrl+Alt+Y'); } catch { return false; } })(),
   };
 });
 
@@ -1717,14 +1739,19 @@ setInterval(() => {
   }
 }, 32);
 
+// Windows 通知需要稳定的 AppUserModelId（否则 toast 可能发不出/归属错乱）
+try { app.setAppUserModelId('denia.yaya.pet'); } catch { /* 忽略 */ }
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on('second-instance', () => {
     if (launcherWin && !launcherWin.isDestroyed()) { launcherWin.focus(); return; }
+    // 再启动一次 = 把她叫出来（托盘被 Win11 收进溢出区时的救命路径之一）
     if (win) { win.showInactive(); }
   });
   app.on('will-quit', () => {
+    try { globalShortcut.unregisterAll(); } catch { /* 忽略 */ }
     try { whisperIdle.dispose(); } catch { /* 忽略 */ }
     // 2026-10-25：退出时杀掉自己拉的 SSH 隧道。原先只清 whisper，
     // `ssh -N -L` 隧道没有会话使命也不会自己退，会留孤儿进程占着端口转发。
@@ -1745,6 +1772,9 @@ if (!app.requestSingleInstanceLock()) {
     } catch { /* 权限接口异常也不该拦启动 */ }
     registerProtocol();
     createTray();
+    // 全局热键（2026-10-25）：Win11 会把托盘图标收进溢出区，藏起来后没她"入口"。
+    // Ctrl+Alt+Y 永远可用；再启动一次（second-instance）也会把她叫出来。
+    try { globalShortcut.register('Ctrl+Alt+Y', () => toggleVisible()); } catch { /* 被占用就算了 */ }
     // 启动器（2026-10-25）：默认每次启动先选；勾选「下次直接启动」后按记忆直启。
     // 托盘的「启动选项…」随时能再打开它改选择。
     if (launcherCfg.skip) {
